@@ -2,7 +2,7 @@
 
 [![npm version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/switchlove/artvee-scraper)
 [![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D20.0.0-brightgreen.svg)](https://nodejs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 A Node.js web scraper for [Artvee.com](https://artvee.com/) that allows you to scrape, filter, and download high-quality public domain artwork.
