@@ -123,24 +123,24 @@ await scraper.downloadMultipleArtworks(
 - `abstract`
 - `figurative`
 - `landscape`
+- `posters`
+- `illustration`
 - `religion`
 - `mythology`
-- `posters`
-- `animals`
-- `illustration`
+- `drawings`
 - `still-life`
-- `botanical`
-- `asian-art`
+- `plants-animals4`
 
 #### Available Centuries
 
-- `11th-century` through `21st-century`
+- `15th-century` through `21st-century`
 
 #### Available Orientations
 
 - `landscape`
 - `portrait`
 - `square`
+- `panorama`
 
 ### Get Artwork Details
 
