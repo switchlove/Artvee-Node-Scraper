@@ -28,14 +28,14 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Verify package loads
+      run: |
+        node -e "const ArtveeScraper = require('./scraper'); const scraper = new ArtveeScraper(); console.log('✓ Scraper module loads successfully')"
+
     - name: Run scrape test
       run: npm run test-scrape
       timeout-minutes: 5
       continue-on-error: true
-
-    - name: Verify package structure
-      run: |
-        node -e "const s = require('./scraper'); console.log('✓ Scraper module loads successfully')"
 
   lint:
     runs-on: ubuntu-latest
