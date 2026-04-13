@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/switchlove/Artvee-Node-Scraper.git"
+    "url": "git+https://github.com/switchlove/Artvee-Node-Scraper.git"
   },
   "bugs": {
     "url": "https://github.com/switchlove/Artvee-Node-Scraper/issues"
