@@ -1,5 +1,5 @@
 {
-  "name": "artvee-scraper",
+  "name": "artvee-node-scraper",
   "version": "1.0.1",
   "description": "A web scraper for Artvee.com with filtering capabilities",
   "main": "scraper.js",
@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/switchlove/artvee-scraper.git"
+    "url": "https://github.com/switchlove/Artvee-Node-Scraper.git"
   },
   "bugs": {
-    "url": "https://github.com/switchlove/artvee-scraper/issues"
+    "url": "https://github.com/switchlove/Artvee-Node-Scraper/issues"
   },
-  "homepage": "https://github.com/switchlove/artvee-scraper#readme",
+  "homepage": "https://github.com/switchlove/Artvee-Node-Scraper#readme",
   "keywords": [
     "scraper",
     "artvee",
