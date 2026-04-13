@@ -143,12 +143,13 @@ class ArtveeScraper {
    */
   extractArtist(title) {
     // Try to extract artist name - common format is "Title - Artist" or "Title, Artist"
-    const dashMatch = title.match(/[-–—]\s*(.+)$/);
+    // Use non-greedy and atomic groups to prevent ReDoS
+    const dashMatch = title.match(/[-–—]\s?(.+?)$/);
     if (dashMatch) {
       return dashMatch[1].trim();
     }
 
-    const commaMatch = title.match(/,\s*([^,]+)$/);
+    const commaMatch = title.match(/,\s?([^,]+?)$/);
     if (commaMatch) {
       return commaMatch[1].trim();
     }
@@ -508,7 +509,8 @@ class ArtveeScraper {
       .replace(/[<>:"/\\|?*]/g, '-')
       .replace(/\s+/g, '_')
       .replace(/_{2,}/g, '_')
-      .replace(/^-+|-+$/g, '')
+      .replace(/^-/, '')
+      .replace(/-$/, '')
       .substring(0, 150); // Limit length
   }
 
