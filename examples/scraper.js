@@ -1,4 +1,4 @@
-const ArtveeScraper = require('./scraper');
+const ArtveeScraper = require('../scraper');
 
 async function main() {
   const scraper = new ArtveeScraper();

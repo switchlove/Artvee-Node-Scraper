@@ -5,9 +5,9 @@ A Node.js web scraper for [Artvee.com](https://artvee.com/) that allows you to s
 ## Features
 
 - 🎨 Scrape artworks from Artvee.com
-- 🔍 Filter by category (landscape, portrait, abstract, etc.)
-- 📅 Filter by century (11th-21st century)
-- 📐 Filter by orientation (landscape, portrait, square)
+- 🔍 Filter by category (abstract, figurative, landscape, religion, mythology, etc.)
+- 📅 Filter by century (15th-21st century)
+- 📐 Filter by orientation (landscape, portrait, square, panorama)
 - 📄 Pagination support
 - 🖼️ Extract detailed artwork information
 - 💾 **Download images automatically**

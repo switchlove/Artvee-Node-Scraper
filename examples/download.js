@@ -1,4 +1,7 @@
-const ArtveeScraper = require('./scraper');
+const ArtveeScraper = require('../scraper');
+const fs = require('fs');
+const path = require('path');
+const { imageSize } = require('image-size');
 
 async function quickDownloadTest() {
   console.log('🎨 Artvee Quick Download Test\n');
@@ -33,10 +36,10 @@ async function quickDownloadTest() {
       './downloads/test',
       {
         quality: 'standard',
-        includeDetails: false, // Set to true to also download metadata
+        includeDetails: true, // Save metadata JSON files
         delay: 1000,
         maxConcurrent: 2,
-        overwrite: false
+        overwrite: true // Force re-download to test full-size images
       }
     );
 
@@ -48,6 +51,35 @@ async function quickDownloadTest() {
     console.log(`  Failed: ${downloadResults.failed}`);
     
     console.log('\n📁 Files saved to: ./downloads/test/');
+    
+    // Display file details (size and resolution)
+    console.log('\n📊 Downloaded Images Details:\n');
+    console.log('─'.repeat(80));
+    
+    downloadResults.results.forEach((result, index) => {
+      if (result.success && result.path) {
+        try {
+          const stats = fs.statSync(result.path);
+          const buffer = fs.readFileSync(result.path);
+          const dimensions = imageSize(buffer);
+          const sizeKB = (stats.size / 1024).toFixed(2);
+          const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+          const sizeDisplay = stats.size > 1024 * 1024 ? `${sizeMB} MB` : `${sizeKB} KB`;
+          
+          console.log(`${index + 1}. ${result.artwork}`);
+          console.log(`   📏 Resolution: ${dimensions.width} × ${dimensions.height} pixels`);
+          console.log(`   💾 File Size: ${sizeDisplay} (${stats.size.toLocaleString()} bytes)`);
+          console.log(`   📁 Path: ${path.basename(result.path)}`);
+          console.log('');
+        } catch (error) {
+          console.log(`${index + 1}. ${result.artwork}`);
+          console.log(`   ⚠️  Could not read file details: ${error.message}`);
+          console.log('');
+        }
+      }
+    });
+    
+    console.log('─'.repeat(80));
     
   } catch (error) {
     console.error('❌ Error:', error.message);

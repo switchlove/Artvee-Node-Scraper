@@ -370,37 +370,60 @@ class ArtveeScraper {
 
       let imageUrl = artwork.imageUrl;
 
-      // Get high-quality image URL if requested
-      if (quality === 'high' && includeDetails) {
+      // Get appropriate quality image URL
+      if (quality !== 'thumbnail') {
+        // For standard and high quality, fetch download links from detail page
         const details = await this.scrapeArtworkDetails(artwork.url);
-        imageUrl = details.mainImage || artwork.imageUrl;
         
-        // If premium account, try to get the highest quality download link
-        if (this.isPremium && details.downloadLinks.length > 0) {
-          // Look for the highest quality download link
-          const highQualityLink = details.downloadLinks.find(link => 
-            link.text.toLowerCase().includes('high') || 
-            link.text.toLowerCase().includes('hd')
-          ) || details.downloadLinks[0];
-          
-          imageUrl = highQualityLink.url;
+        if (quality === 'standard') {
+          // Use standard download link (typically sdl - standard download)
+          if (details.downloadLinks.length > 0) {
+            // First download link is usually the standard download
+            imageUrl = details.downloadLinks[0].url;
+          } else {
+            // Fallback to main image if no download links found
+            imageUrl = details.mainImage || artwork.imageUrl;
+          }
+        } else if (quality === 'high') {
+          // For high quality, try to find the highest resolution download
+          if (this.isPremium && details.downloadLinks.length > 1) {
+            // Premium accounts may have access to multiple quality options
+            // Look for high/HD quality link, otherwise use last (usually highest)
+            const highQualityLink = details.downloadLinks.find(link => 
+              link.text.toLowerCase().includes('high') || 
+              link.text.toLowerCase().includes('hd')
+            ) || details.downloadLinks[details.downloadLinks.length - 1];
+            
+            imageUrl = highQualityLink.url;
+          } else if (details.downloadLinks.length > 0) {
+            // Use the best available download link
+            imageUrl = details.downloadLinks[0].url;
+          } else {
+            imageUrl = details.mainImage || artwork.imageUrl;
+          }
+        }
+        
+        // Save details if we fetched them
+        if (includeDetails) {
+          const metadata = {
+            ...artwork,
+            details,
+            downloadedAt: new Date().toISOString(),
+            quality,
+            localPath: imagePath
+          };
+          // Save metadata alongside image (do this after download succeeds)
+          this._pendingMetadata = { path: metadataPath, data: metadata };
         }
       }
 
       // Download the image
       const downloadResult = await this.downloadImage(imageUrl, imagePath, { overwrite });
 
-      // Save metadata if requested
-      if (includeDetails && downloadResult.success && !downloadResult.skipped) {
-        const details = await this.scrapeArtworkDetails(artwork.url);
-        const metadata = {
-          ...artwork,
-          details,
-          downloadedAt: new Date().toISOString(),
-          quality,
-          localPath: imagePath
-        };
-        fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 2));
+      // Save metadata if it was prepared during detail fetching
+      if (this._pendingMetadata && downloadResult.success && !downloadResult.skipped) {
+        fs.writeFileSync(this._pendingMetadata.path, JSON.stringify(this._pendingMetadata.data, null, 2));
+        delete this._pendingMetadata;
       }
 
       return {
