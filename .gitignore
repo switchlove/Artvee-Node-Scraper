@@ -13,6 +13,7 @@ yarn-error.log*
 
 # Config files (use config.example.js as template)
 config.js
+.npmrc
 
 # Downloads directory
 downloads/
