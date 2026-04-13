@@ -2,9 +2,11 @@
 
 ## Prerequisites
 
-- **Node.js**: Version 14.x or higher
-- **npm**: Version 6.x or higher
+- **Node.js**: Version 20.0.0 or higher ([Download](https://nodejs.org/))
+- **npm**: Comes with Node.js
 - **Operating System**: Windows, macOS, or Linux
+
+> **Note**: Node.js 20+ is required due to the File API dependency in axios/undici.
 
 ## Step 1: Clone or Download
 
