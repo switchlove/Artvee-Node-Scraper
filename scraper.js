@@ -143,15 +143,27 @@ class ArtveeScraper {
    */
   extractArtist(title) {
     // Try to extract artist name - common format is "Title - Artist" or "Title, Artist"
-    // Use non-greedy and atomic groups to prevent ReDoS
-    const dashMatch = title.match(/[-–—]\s?(.+?)$/);
-    if (dashMatch) {
-      return dashMatch[1].trim();
+    // Use String methods to avoid ReDoS vulnerabilities
+    
+    // Try en-dash (–), em-dash (—), and hyphen (-)
+    const dashChars = ['–', '—', '-'];
+    for (const dash of dashChars) {
+      const lastIndex = title.lastIndexOf(dash);
+      if (lastIndex !== -1) {
+        const artist = title.substring(lastIndex + 1).trim();
+        if (artist.length > 0) {
+          return artist;
+        }
+      }
     }
 
-    const commaMatch = title.match(/,\s?([^,]+?)$/);
-    if (commaMatch) {
-      return commaMatch[1].trim();
+    // Try comma
+    const lastCommaIndex = title.lastIndexOf(',');
+    if (lastCommaIndex !== -1) {
+      const artist = title.substring(lastCommaIndex + 1).trim();
+      if (artist.length > 0) {
+        return artist;
+      }
     }
 
     return null;
