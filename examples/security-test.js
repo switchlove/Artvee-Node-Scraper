@@ -133,29 +133,37 @@ function testSanitization() {
 
   // Test path.join with sanitized filenames
   console.log('═'.repeat(70));
-  console.log('Testing path.join() with sanitized filenames:\n');
+  console.log('Testing safePath() validation:\n');
 
   const dangerousInputs = [
     '../../etc/passwd',
     '../../../windows/system32',
-    'normal/../../../etc/shadow'
+    'normal/../../../etc/shadow',
+    'legitimate_file.jpg'
   ];
 
   for (const dangerous of dangerousInputs) {
     const sanitized = scraper.sanitizeFilename(dangerous);
-    const joined = path.join('./downloads', sanitized + '.jpg');
-    const normalized = path.normalize(joined);
     
-    console.log(`Input:      ${dangerous}`);
-    console.log(`Sanitized:  ${sanitized}`);
-    console.log(`Joined:     ${joined}`);
-    console.log(`Normalized: ${normalized}`);
-    
-    // Check if the normalized path stays within ./downloads
-    if (normalized.startsWith('downloads') || normalized.startsWith('./downloads')) {
-      console.log(`Status:     ✓ SAFE - Path stays within downloads directory`);
-    } else {
-      console.log(`Status:     ✗ UNSAFE - Path escapes downloads directory!`);
+    try {
+      const safePath = scraper.safePath('./downloads', sanitized + '.jpg');
+      const normalized = path.normalize(safePath);
+      
+      console.log(`Input:      ${dangerous}`);
+      console.log(`Sanitized:  ${sanitized}`);
+      console.log(`Safe Path:  ${safePath}`);
+      console.log(`Normalized: ${normalized}`);
+      
+      // Check if the normalized path stays within ./downloads
+      const downloadDir = path.resolve('./downloads');
+      if (normalized.startsWith(downloadDir)) {
+        console.log(`Status:     ✓ VALIDATED - Path stays within downloads directory`);
+      } else {
+        console.log(`Status:     ✗ ERROR - Path escapes downloads directory!`);
+      }
+    } catch (error) {
+      console.log(`Input:      ${dangerous}`);
+      console.log(`Status:     ✓ BLOCKED - ${error.message}`);
     }
     console.log();
   }

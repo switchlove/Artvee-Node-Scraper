@@ -478,8 +478,10 @@ class ArtveeScraper {
       
       // Use path.basename to ensure we only get the filename component
       const safeFilename = path.basename(filename);
-      const imagePath = path.join(downloadDir, safeFilename);
-      const metadataPath = path.join(downloadDir, `${path.basename(sanitizedTitle)}.json`);
+      
+      // Validate paths stay within target directory (defense-in-depth)
+      const imagePath = this.safePath(downloadDir, safeFilename);
+      const metadataPath = this.safePath(downloadDir, `${path.basename(sanitizedTitle)}.json`);
 
       let imageUrl = artwork.imageUrl;
 
@@ -695,6 +697,24 @@ class ArtveeScraper {
       .trim() || 'artwork'
       // Limit length (filesystem limitations)
       .substring(0, 150);
+  }
+
+  /**
+   * Safely join paths and validate the result stays within the target directory
+   * Prevents path traversal attacks with defense-in-depth validation
+   * @private
+   */
+  safePath(targetDir, filename) {
+    // Resolve to absolute paths
+    const resolvedDir = path.resolve(targetDir);
+    const resolvedPath = path.resolve(targetDir, filename);
+    
+    // Verify the resolved path is within the target directory
+    if (!resolvedPath.startsWith(resolvedDir + path.sep) && resolvedPath !== resolvedDir) {
+      throw new Error('Path traversal attempt detected');
+    }
+    
+    return resolvedPath;
   }
 
   /**
