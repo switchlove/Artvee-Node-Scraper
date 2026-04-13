@@ -3,6 +3,15 @@ const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
 const { pipeline } = require('stream/promises');
+const cliProgress = require('cli-progress');
+
+// Optional sharp dependency for image compression
+let sharp = null;
+try {
+  sharp = require('sharp');
+} catch (err) {
+  // sharp is optional - compression features will be disabled if not installed
+}
 
 class ArtveeScraper {
   /**
@@ -309,14 +318,27 @@ class ArtveeScraper {
    * @returns {Promise<Object>} Download result with path and size
    */
   async downloadImage(imageUrl, outputPath, options = {}) {
-    const { overwrite = false } = options;
+    const { 
+      overwrite = false, 
+      showProgress = false, 
+      progressBar = null,
+      compress = false,
+      compressionOptions = {}
+    } = options;
 
     // Check if file already exists
     if (!overwrite && fs.existsSync(outputPath)) {
+      const stats = fs.statSync(outputPath);
+      // Update progress bar for skipped file
+      if (progressBar) {
+        const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+        progressBar.update(100, { size: `${sizeMB} MB (cached)` });
+      }
       return {
         success: true,
         path: outputPath,
         skipped: true,
+        size: stats.size,
         message: 'File already exists'
       };
     }
@@ -336,17 +358,80 @@ class ArtveeScraper {
         headers: this.getHeaders()
       });
 
+      const totalSize = parseInt(response.headers['content-length'], 10);
+      let downloadedSize = 0;
+
+      // Create a single progress bar if enabled and not provided
+      let bar = progressBar;
+      let shouldStopBar = false;
+      
+      if (showProgress && !bar && totalSize) {
+        const filename = path.basename(outputPath).substring(0, 35).padEnd(35);
+        bar = new cliProgress.SingleBar({
+          format: `📥 ${filename} │{bar}│ {percentage}% │ {size} │ ETA: {eta}s`,
+          barCompleteChar: '█',
+          barIncompleteChar: '░',
+          hideCursor: true,
+          barsize: 30,
+          formatValue: (v, options, type) => {
+            if (type === 'percentage') {
+              return String(Math.floor(v)).padStart(3);
+            }
+            return v;
+          }
+        });
+        bar.start(totalSize, 0, { size: '0 MB' });
+        shouldStopBar = true;
+      }
+
+      // Track progress
+      if (bar && totalSize) {
+        response.data.on('data', (chunk) => {
+          downloadedSize += chunk.length;
+          const sizeMB = (downloadedSize / (1024 * 1024)).toFixed(2);
+          const totalMB = (totalSize / (1024 * 1024)).toFixed(2);
+          
+          // Update with actual byte progress
+          bar.update(downloadedSize, { size: `${sizeMB}/${totalMB} MB` });
+        });
+      } else if (progressBar && totalSize) {
+        // For multibar, update as percentage
+        response.data.on('data', (chunk) => {
+          downloadedSize += chunk.length;
+          const percentage = Math.floor((downloadedSize / totalSize) * 100);
+          const sizeMB = (downloadedSize / (1024 * 1024)).toFixed(2);
+          const totalMB = (totalSize / (1024 * 1024)).toFixed(2);
+          progressBar.update(percentage, { size: `${sizeMB}/${totalMB} MB` });
+        });
+      }
+
       // Save to file
       await pipeline(response.data, fs.createWriteStream(outputPath));
 
-      const stats = fs.statSync(outputPath);
+      // Stop progress bar if we created it
+      if (shouldStopBar && bar) {
+        bar.stop();
+      }
+
+      let stats = fs.statSync(outputPath);
+      let compressionResult = null;
+
+      // Compress image if requested
+      if (compress && sharp) {
+        compressionResult = await this.compressImage(outputPath, null, compressionOptions);
+        if (compressionResult.success) {
+          stats = fs.statSync(outputPath);
+        }
+      }
 
       return {
         success: true,
         path: outputPath,
         size: stats.size,
         sizeFormatted: this.formatBytes(stats.size),
-        skipped: false
+        skipped: false,
+        compressed: compress && compressionResult?.success,
+        compression: compressionResult
       };
     } catch (error) {
       return {
@@ -365,21 +450,36 @@ class ArtveeScraper {
    * @param {boolean} options.includeDetails - Fetch and save detailed artwork info (default: false)
    * @param {boolean} options.quality - Image quality: 'thumbnail', 'standard', 'high' (default: 'standard')
    * @param {boolean} options.overwrite - Overwrite existing files (default: false)
+   * @param {boolean} options.showProgress - Show progress bar for download (default: false)
+   * @param {Object} options.progressBar - Custom progress bar instance (for multi-downloads)
+   * @param {boolean} options.compress - Compress image after download (default: false)
+   * @param {Object} options.compressionOptions - Options for image compression
+   * @param {string} options.compressionOptions.format - Output format: 'jpeg', 'png', 'webp'
+   * @param {number} options.compressionOptions.quality - Quality level 1-100 (default: 80)
+   * @param {number} options.compressionOptions.width - Resize width in pixels
+   * @param {number} options.compressionOptions.height - Resize height in pixels
    * @returns {Promise<Object>} Download result
    */
   async downloadArtwork(artwork, downloadDir = './downloads', options = {}) {
     const { 
       includeDetails = false, 
       quality = 'standard',
-      overwrite = false 
+      overwrite = false,
+      showProgress = false,
+      progressBar = null,
+      compress = false,
+      compressionOptions = {}
     } = options;
 
     try {
-      // Sanitize filename
+      // Sanitize filename to prevent path traversal attacks
       const sanitizedTitle = this.sanitizeFilename(artwork.title || 'artwork');
       const filename = `${sanitizedTitle}.jpg`;
-      const imagePath = path.join(downloadDir, filename);
-      const metadataPath = path.join(downloadDir, `${sanitizedTitle}.json`);
+      
+      // Use path.basename to ensure we only get the filename component
+      const safeFilename = path.basename(filename);
+      const imagePath = path.join(downloadDir, safeFilename);
+      const metadataPath = path.join(downloadDir, `${path.basename(sanitizedTitle)}.json`);
 
       let imageUrl = artwork.imageUrl;
 
@@ -431,7 +531,13 @@ class ArtveeScraper {
       }
 
       // Download the image
-      const downloadResult = await this.downloadImage(imageUrl, imagePath, { overwrite });
+      const downloadResult = await this.downloadImage(imageUrl, imagePath, { 
+        overwrite, 
+        showProgress, 
+        progressBar,
+        compress,
+        compressionOptions
+      });
 
       // Save metadata if it was prepared during detail fetching
       if (this._pendingMetadata && downloadResult.success && !downloadResult.skipped) {
@@ -462,12 +568,14 @@ class ArtveeScraper {
    * @param {Object} options - Download options
    * @param {number} options.delay - Delay between downloads in ms (default: 1000)
    * @param {number} options.maxConcurrent - Max concurrent downloads (default: 3)
+   * @param {boolean} options.showProgress - Show progress bars for downloads (default: true)
    * @returns {Promise<Array>} Array of download results
    */
   async downloadMultipleArtworks(artworks, downloadDir = './downloads', options = {}) {
     const { 
       delay = 1000, 
       maxConcurrent = 3,
+      showProgress = true,
       ...downloadOptions 
     } = options;
 
@@ -481,22 +589,70 @@ class ArtveeScraper {
 
     console.log(`Starting download of ${artworks.length} artworks...`);
 
+    // Create multi-bar for progress tracking
+    let multibar = null;
+    if (showProgress) {
+      multibar = new cliProgress.MultiBar({
+        clearOnComplete: false,
+        hideCursor: true,
+        format: '📥 {filename} │{bar}│ {percentage}% │ {size}',
+        barCompleteChar: '█',
+        barIncompleteChar: '░',
+        barsize: 25,
+        formatValue: (v, options, type) => {
+          if (type === 'percentage') {
+            return String(Math.floor(v)).padStart(3);
+          }
+          return v;
+        }
+      });
+    }
+
     for (const chunk of chunks) {
-      const chunkPromises = chunk.map(artwork => 
-        this.downloadArtwork(artwork, downloadDir, downloadOptions)
-      );
+      const chunkPromises = chunk.map(async (artwork) => {
+        // Create a progress bar for this artwork if multibar exists
+        let bar = null;
+        if (multibar) {
+          const filename = this.sanitizeFilename(artwork.title || 'artwork').substring(0, 40).padEnd(40);
+          bar = multibar.create(100, 0, { filename, size: '0.00 MB' });
+        }
+
+        const result = await this.downloadArtwork(artwork, downloadDir, {
+          ...downloadOptions,
+          showProgress: false, // Disable individual progress since we're using multibar
+          progressBar: bar
+        });
+
+        // Ensure progress bar shows complete with final size
+        if (bar && result.success) {
+          const sizeMB = (result.size / (1024 * 1024)).toFixed(2);
+          const status = result.skipped ? `${sizeMB} MB (cached)` : `${sizeMB} MB`;
+          bar.update(100, { size: status });
+        } else if (bar && !result.success) {
+          bar.update(100, { size: 'Failed' });
+        }
+
+        return result;
+      });
 
       const chunkResults = await Promise.all(chunkPromises);
       results.push(...chunkResults);
 
       // Log progress
       const successCount = results.filter(r => r.success).length;
-      console.log(`Progress: ${results.length}/${artworks.length} (${successCount} successful)`);
+      if (!showProgress) {
+        console.log(`Progress: ${results.length}/${artworks.length} (${successCount} successful)`);
+      }
 
       // Delay before next chunk (except for last chunk)
       if (chunks.indexOf(chunk) < chunks.length - 1) {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
+    }
+
+    // Stop the multibar
+    if (multibar) {
+      multibar.stop();
     }
 
     const summary = {
@@ -514,16 +670,31 @@ class ArtveeScraper {
 
   /**
    * Sanitize filename for safe file system usage
+   * Prevents path traversal attacks and ensures valid filenames
    * @private
    */
   sanitizeFilename(filename) {
+    if (!filename || typeof filename !== 'string') {
+      return 'artwork';
+    }
+
     return filename
+      // Remove null bytes
+      .replace(/\0/g, '')
+      // Remove path separators and parent directory references
+      .replace(/\.\./g, '')
       .replace(/[<>:"/\\|?*]/g, '-')
+      // Replace whitespace with underscores
       .replace(/\s+/g, '_')
+      // Collapse multiple underscores
       .replace(/_{2,}/g, '_')
-      .replace(/^-/, '')
-      .replace(/-$/, '')
-      .substring(0, 150); // Limit length
+      // Remove leading/trailing dots and dashes (security: prevent hidden files and path issues)
+      .replace(/^[.\-]+/, '')
+      .replace(/[.\-]+$/, '')
+      // Ensure we have at least some content
+      .trim() || 'artwork'
+      // Limit length (filesystem limitations)
+      .substring(0, 150);
   }
 
   /**
@@ -536,6 +707,93 @@ class ArtveeScraper {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  /**
+   * Compress an image file
+   * @param {string} inputPath - Path to input image
+   * @param {string} outputPath - Path to save compressed image (optional, defaults to input)
+   * @param {Object} options - Compression options
+   * @param {string} options.format - Output format: 'jpeg', 'png', 'webp' (default: keep original)
+   * @param {number} options.quality - Quality level 1-100 (default: 80)
+   * @param {number} options.width - Resize width in pixels (maintains aspect ratio)
+   * @param {number} options.height - Resize height in pixels (maintains aspect ratio)
+   * @param {boolean} options.progressive - Use progressive encoding (JPEG only)
+   * @returns {Promise<Object>} Compression result
+   */
+  async compressImage(inputPath, outputPath = null, options = {}) {
+    if (!sharp) {
+      throw new Error('Image compression requires the \'sharp\' package. Install it with: npm install sharp');
+    }
+
+    const {
+      format = null,
+      quality = 80,
+      width = null,
+      height = null,
+      progressive = true
+    } = options;
+
+    try {
+      const output = outputPath || inputPath;
+      const originalStats = fs.statSync(inputPath);
+      
+      let transformer = sharp(inputPath);
+
+      // Resize if dimensions specified
+      if (width || height) {
+        transformer = transformer.resize(width, height, {
+          fit: 'inside',
+          withoutEnlargement: true
+        });
+      }
+
+      // Apply format and compression
+      if (format === 'jpeg' || format === 'jpg') {
+        transformer = transformer.jpeg({ quality, progressive });
+      } else if (format === 'png') {
+        transformer = transformer.png({ quality, compressionLevel: 9 });
+      } else if (format === 'webp') {
+        transformer = transformer.webp({ quality });
+      } else {
+        // Keep original format but apply quality
+        const metadata = await sharp(inputPath).metadata();
+        if (metadata.format === 'jpeg' || metadata.format === 'jpg') {
+          transformer = transformer.jpeg({ quality, progressive });
+        } else if (metadata.format === 'png') {
+          transformer = transformer.png({ quality, compressionLevel: 9 });
+        } else if (metadata.format === 'webp') {
+          transformer = transformer.webp({ quality });
+        }
+      }
+
+      await transformer.toFile(output + '.tmp');
+      
+      // Replace original with compressed version
+      fs.renameSync(output + '.tmp', output);
+      
+      const compressedStats = fs.statSync(output);
+      const savings = originalStats.size - compressedStats.size;
+      const savingsPercent = ((savings / originalStats.size) * 100).toFixed(1);
+
+      return {
+        success: true,
+        path: output,
+        originalSize: originalStats.size,
+        compressedSize: compressedStats.size,
+        originalSizeFormatted: this.formatBytes(originalStats.size),
+        compressedSizeFormatted: this.formatBytes(compressedStats.size),
+        savings: savings,
+        savingsFormatted: this.formatBytes(savings),
+        savingsPercent: savingsPercent
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        path: outputPath || inputPath
+      };
+    }
   }
 }
 
