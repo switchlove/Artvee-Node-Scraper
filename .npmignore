@@ -1,0 +1,35 @@
+# Examples
+examples/
+*.example.js
+
+# Test outputs
+test/
+test-download/
+temp/
+downloads/
+
+# Config files
+config.js
+
+# Wiki (managed separately in GitHub Wiki)
+wiki/
+
+# Documentation build files
+docs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache

@@ -1,34 +1,33 @@
 # Artvee Scraper
 
-A Node.js web scraper for [Artvee.com](https://artvee.com/) that allows you to scrape, filter, and download artwork data by category, century, and orientation.
+[![npm version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/switchlove/artvee-scraper)
+[![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen.svg)](https://nodejs.org/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
+A Node.js web scraper for [Artvee.com](https://artvee.com/) that allows you to scrape, filter, and download high-quality public domain artwork.
 
 ## Features
 
-- 🎨 Scrape artworks from Artvee.com
-- 🔍 Filter by category (abstract, figurative, landscape, religion, mythology, etc.)
-- 📅 Filter by century (15th-21st century)
-- 📐 Filter by orientation (landscape, portrait, square, panorama)
-- 📄 Pagination support
-- 🖼️ Extract detailed artwork information
-- 💾 **Download images automatically**
-- 🔐 **Premium account support for higher quality downloads**
-- 📦 Batch download with configurable concurrency
-- 📊 Save metadata alongside images
+- 🎨 **Scrape artworks** - Filter by category, century, and orientation
+- 💾 **Download images** - Three quality levels (thumbnail, standard, high)
+- 🔐 **Premium support** - Access highest quality images with premium account
+- 📦 **Batch processing** - Download multiple artworks with configurable concurrency
+- 📊 **Export metadata** - Save artwork details as JSON
+- 📄 **Pagination** - Navigate through large collections
 
-## Installation
+## Quick Start
 
-1. Install dependencies:
+### Installation
+
 ```bash
 npm install
 ```
 
-## Usage
-
-### Basic Scraping Example
+### Basic Usage
 
 ```javascript
 const ArtveeScraper = require('./scraper');
-
 const scraper = new ArtveeScraper();
 
 // Scrape 17th century landscape artworks
@@ -36,328 +35,75 @@ const results = await scraper.scrapeArtworks({
   category: 'landscape',
   century: '17th-century',
   orientation: 'landscape',
-  perPage: 70,
-  page: 1
+  perPage: 20
 });
 
-console.log(results.artworks);
+console.log(`Found ${results.totalResults} artworks`);
 ```
 
-### Download Images
+### Download Artworks
 
 ```javascript
-const ArtveeScraper = require('./scraper');
-const scraper = new ArtveeScraper();
-
-// Scrape artworks
-const results = await scraper.scrapeArtworks({
-  category: 'landscape',
-  century: '17th-century',
-  perPage: 10
-});
-
-// Download all artworks
+// Download with standard quality (1800px)
 await scraper.downloadMultipleArtworks(
   results.artworks,
-  './downloads/17th-century',
+  './downloads',
   {
     quality: 'standard',
     includeDetails: true,
-    delay: 1500,
-    maxConcurrent: 3
+    delay: 1500
   }
 );
-```
-
-### Premium Account (Higher Quality Downloads)
-
-```javascript
-const ArtveeScraper = require('./scraper');
-
-// Initialize with premium account credentials
-const scraper = new ArtveeScraper({
-  authCookie: 'your_cookie_string_here',
-  headers: {
-    // Additional headers if needed
-  }
-});
-
-// Premium accounts get access to higher quality images
-const results = await scraper.scrapeArtworks({
-  category: 'landscape',
-  century: '18th-century'
-});
-
-await scraper.downloadMultipleArtworks(
-  results.artworks,
-  './downloads/premium',
-  {
-    quality: 'high', // Premium accounts can access high quality
-    includeDetails: true
-  }
-);
-```
-
-#### Getting Your Premium Cookie
-
-1. Log in to [artvee.com](https://artvee.com) in your browser
-2. Open DevTools (F12)
-3. Go to **Application** > **Storage** > **Cookies**
-4. Copy the cookie string (format: `cookie1=value1; cookie2=value2`)
-5. Use it in the scraper constructor
-
-### Available Options
-
-#### `scrapeArtworks(options)`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `category` | string | 'landscape' | Category to filter (see categories below) |
-| `century` | string | null | Century to filter (e.g., '17th-century') |
-| `orientation` | string | null | Orientation filter ('landscape', 'portrait', 'square') |
-| `perPage` | number | 70 | Number of results per page |
-| `page` | number | 1 | Page number for pagination |
-
-#### Available Categories
-
-- `abstract`
-- `figurative`
-- `landscape`
-- `posters`
-- `illustration`
-- `religion`
-- `mythology`
-- `drawings`
-- `still-life`
-- `plants-animals4`
-
-#### Available Centuries
-
-- `15th-century` through `21st-century`
-
-#### Available Orientations
-
-- `landscape`
-- `portrait`
-- `square`
-- `panorama`
-
-### Get Artwork Details
-
-```javascript
-// Get detailed information for a specific artwork
-const details = await scraper.scrapeArtworkDetails('https://artvee.com/dl/artwork-url/');
-
-console.log(details.title);
-console.log(details.description);
-console.log(details.downloadLinks);
-```
-
-### Download Methods
-
-#### `downloadImage(imageUrl, outputPath, options)`
-
-Download a single image from a URL.
-
-```javascript
-await scraper.downloadImage(
-  'https://mdl.artvee.com/ft/503222ld.jpg',
-  './downloads/image.jpg',
-  { overwrite: false }
-);
-```
-
-#### `downloadArtwork(artwork, downloadDir, options)`
-
-Download an artwork with its metadata.
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `includeDetails` | boolean | false | Fetch and save detailed artwork info |
-| `quality` | string | 'standard' | Image quality: 'thumbnail', 'standard', 'high' |
-| `overwrite` | boolean | false | Overwrite existing files |
-
-```javascript
-const result = await scraper.downloadArtwork(
-  artwork,
-  './downloads/single',
-  {
-    includeDetails: true,
-    quality: 'high',
-    overwrite: false
-  }
-);
-```
-
-#### `downloadMultipleArtworks(artworks, downloadDir, options)`
-
-Download multiple artworks with batch processing.
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `delay` | number | 1000 | Delay between downloads in milliseconds |
-| `maxConcurrent` | number | 3 | Maximum concurrent downloads |
-| `includeDetails` | boolean | false | Fetch and save detailed artwork info |
-| `quality` | string | 'standard' | Image quality |
-| `overwrite` | boolean | false | Overwrite existing files |
-
-```javascript
-const summary = await scraper.downloadMultipleArtworks(
-  artworks,
-  './downloads/batch',
-  {
-    delay: 1500,
-    maxConcurrent: 3,
-    quality: 'standard',
-    includeDetails: true
-  }
-);
-
-console.log(`Downloaded ${summary.successful} artworks`);
 ```
 
 ### Run Examples
 
 ```bash
-npm run example      # Basic scraping examples
-npm run download    # Download examples with premium support
-npm run quick       # Quick start example
+npm run test-scrape    # Run scraping examples
+npm run test-download  # Run download examples
 ```
 
-## Response Format
+## Documentation
 
-### `scrapeArtworks()` Response
+📚 **[Visit the Wiki](../../wiki)** for comprehensive documentation:
 
-```javascript
-{
-  artworks: [
-    {
-      title: "Artwork Title - Artist Name",
-      url: "https://artvee.com/dl/artwork-url/",
-      imageUrl: "https://...",
-      thumbnailUrl: "https://...",
-      artist: "Artist Name"
-    },
-    // ... more artworks
-  ],
-  pagination: {
-    currentPage: 1,
-    totalPages: 10,
-    hasNextPage: true,
-    hasPrevPage: false
-  },
-  url: "https://artvee.com/c/landscape/?filter_century=17th-century...",
-  totalResults: 70,
-  filters: {
-    category: "landscape",
-    century: "17th-century",
-    orientation: "landscape",
-    perPage: 70,
-    page: 1
-  }
-}
-```
+- **[Installation Guide](../../wiki/Installation)** - Setup and configuration
+- **[Usage Guide](../../wiki/Usage)** - Basic scraping and filtering
+- **[Download Guide](../../wiki/Download-Guide)** - Image download options
+- **[API Reference](../../wiki/API-Reference)** - Complete API documentation
+- **[Premium Account](../../wiki/Premium-Account)** - Premium setup guide
+- **[Examples](../../wiki/Examples)** - 14+ practical code examples
+- **[FAQ](../../wiki/FAQ)** - Common questions
+- **[Troubleshooting](../../wiki/Troubleshooting)** - Debug and fix issues
 
-### `scrapeArtworkDetails()` Response
+## Available Filters
 
-```javascript
-{
-  title: "Artwork Title",
-  url: "https://artvee.com/dl/artwork-url/",
-  mainImage: "https://...",
-  description: "Artwork description...",
-  artist: "Artist Name",
-  year: "1650",
-  dimensions: "100x80cm",
-  downloadLinks: [
-    {
-      text: "Download High Resolution",
-      url: "https://..."
-    }
-  ]
-}
-```
+**Categories:** abstract, figurative, landscape, posters, illustration, religion, mythology, drawings, still-life, plants-animals4
 
-## Example: Matching Your URL
+**Centuries:** 15th-century through 21st-century
 
-To match the URL you provided:
-```
-https://artvee.com/c/landscape/?filter_century=17th-century&filter_orientation=landscape&query_type_orientation=or&per_row=5&shop_view=grid&per_page=70
-```
+**Orientations:** landscape, portrait, square, panorama
 
-Use this code:
+## Image Quality Levels
 
-```javascript
-const results = await scraper.scrapeArtworks({
-  category: 'landscape',
-  century: '17th-century',
-  orientation: 'landscape',
-  perPage: 70
-});
-```
-
-## Advanced Usage
-
-### Scrape Multiple Pages
-
-```javascript
-async function scrapeAllPages(options) {
-  const scraper = new ArtveeScraper();
-  const allArtworks = [];
-  let page = 1;
-  let hasMore = true;
-
-  while (hasMore) {
-    const results = await scraper.scrapeArtworks({
-      ...options,
-      page
-    });
-
-    allArtworks.push(...results.artworks);
-    hasMore = results.pagination.hasNextPage;
-    page++;
-
-    // Be respectful - add delay between requests
-    await new Promise(resolve => setTimeout(resolve, 1000));
-  }
-
-  return allArtworks;
-}
-
-// Usage
-const allArtworks = await scrapeAllPages({
-  category: 'landscape',
-  century: '17th-century',
-  orientation: 'landscape'
-});
-```
-
-### Export to JSON
-
-```javascript
-const fs = require('fs');
-
-const results = await scraper.scrapeArtworks({
-  category: 'landscape',
-  century: '17th-century',
-  orientation: 'landscape',
-  perPage: 70
-});
-
-fs.writeFileSync('artworks.json', JSON.stringify(results, null, 2));
-```
+| Quality | Resolution | File Size | Account Type |
+|---------|-----------|-----------|--------------|
+| `thumbnail` | ~500px | 50-100 KB | Free |
+| `standard` | 1800px | 1-3 MB | Free |
+| `high` | 4000-7000px+ | 10-30 MB | Premium |
 
 ## Rate Limiting
 
 Please be respectful when using this scraper:
-- Add delays between requests
-- Don't overwhelm the server with too many concurrent requests
-- Consider caching results
-
-## Disclaimer
-
-This scraper is for educational purposes only. Please respect Artvee.com's terms of service and robots.txt file. Always check and comply with the website's scraping policies.
+- ✅ Add delays between requests (recommended: 1500ms)
+- ✅ Limit concurrent downloads (recommended: 3 max)
+- ✅ Cache results when possible
+- ❌ Don't overwhelm the server
 
 ## License
 
 ISC
+
+## Disclaimer
+
+This scraper is for educational purposes only. Please respect [Artvee's Terms of Service](https://artvee.com/terms-of-service/) and use responsibly.

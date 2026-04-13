@@ -8,14 +8,29 @@
     "test-scrape": "node examples/scraper.js",
     "test-download": "node examples/download.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/switchlove/artvee-scraper.git"
+  },
+  "bugs": {
+    "url": "https://github.com/switchlove/artvee-scraper/issues"
+  },
+  "homepage": "https://github.com/switchlove/artvee-scraper#readme",
   "keywords": [
     "scraper",
     "artvee",
     "art",
-    "web-scraping"
+    "web-scraping",
+    "public-domain",
+    "artwork",
+    "image-downloader",
+    "nodejs"
   ],
   "author": "switchlove",
   "license": "ISC",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "dependencies": {
     "axios": "^1.6.0",
     "cheerio": "^1.0.0-rc.12",
