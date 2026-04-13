@@ -2,11 +2,11 @@
 
 ## Prerequisites
 
-- **Node.js**: Version 20.0.0 or higher ([Download](https://nodejs.org/))
+- **Node.js**: Version 24.0.0 or higher ([Download](https://nodejs.org/))
 - **npm**: Comes with Node.js
 - **Operating System**: Windows, macOS, or Linux
 
-> **Note**: Node.js 20+ is required due to the File API dependency in axios/undici.
+> **Note**: Node.js 24+ is required for optimal GitHub Actions compatibility and modern Web APIs.
 
 ## Step 1: Clone or Download
 
