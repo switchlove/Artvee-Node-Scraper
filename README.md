@@ -140,6 +140,52 @@ await scraper.downloadArtwork(artwork, './downloads', {
 
 **Note:** Requires `sharp` package: `npm install sharp`
 
+### Automatic Retry & Resume
+
+Downloads automatically retry on failure with exponential backoff and can resume interrupted downloads:
+
+```javascript
+// Create scraper with retry configuration
+const scraper = new ArtveeScraper({
+  maxRetries: 3,        // Retry up to 3 times (default: 3)
+  retryDelay: 1000,     // Base delay 1 second (default: 1000ms)
+  enableResume: true    // Enable resume (default: true)
+});
+
+// Downloads will automatically:
+// - Retry on network failures with exponential backoff
+// - Resume interrupted downloads using HTTP Range headers
+// - Track partial downloads with .partial markers
+```
+
+**Retry Behavior:**
+- Failed downloads retry automatically with exponential backoff
+- Delays: 1s → 2s → 4s → 8s (with random jitter to prevent thundering herd)
+- Retry messages show attempt number and delay time
+- Errors thrown after exhausting all retries
+
+**Resume Capability:**
+- Interrupted downloads create `.partial` marker files
+- On next attempt, resumes from last byte using HTTP Range headers
+- Markers automatically removed when download completes
+- Resume indicator (↻) shown in progress bar
+- Can be disabled per-download or globally
+
+```javascript
+// Download with custom retry settings
+await scraper.downloadArtwork(artwork, './downloads', {
+  maxRetries: 5,        // More aggressive retry
+  retryDelay: 500,      // Faster initial retry
+  resume: true          // Resume if interrupted
+});
+
+// Disable resume for fresh download
+await scraper.downloadArtwork(artwork, './downloads', {
+  resume: false,        // Always start fresh
+  overwrite: true
+});
+```
+
 ### Run Examples
 
 ```bash

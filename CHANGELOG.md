@@ -23,6 +23,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Progressive JPEG encoding support
 - Image resizing during compression (width/height)
 - Compression statistics (original size, compressed size, savings %)
+- **Automatic retry logic for failed downloads**
+- `maxRetries` configuration option (default: 3)
+- `retryDelay` configuration option (default: 1000ms)
+- Exponential backoff with jitter for retry delays
+- Retry attempt logging with countdown
+- **Resume interrupted downloads**
+- `enableResume` configuration option (default: true)
+- HTTP Range header support for partial downloads
+- `.partial` marker files to track incomplete downloads
+- Resume indicator (↻) in progress bars
+- Automatic cleanup of partial markers on completion
 
 ### Changed
 - `downloadMultipleArtworks` now shows progress bars by default
@@ -36,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed leading dots to prevent hidden file creation
 - Added null byte filtering to prevent null byte injection
 - Added `path.basename()` safeguard for additional protection
+- Added `safePath()` method with path.resolve() validation
 - Improved validation of user-provided artwork titles before filesystem operations
 
 ## [1.0.2] - 2026-04-13
@@ -107,8 +119,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned Features
 - [ ] CLI tool for command-line usage
 - [ ] Database integration options
-- [ ] Advanced filtering (by color, style, etc.)
-- [ ] Automated retry logic for failed downloads
 - [ ] Resume interrupted downloads
 
 ---

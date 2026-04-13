@@ -24,6 +24,11 @@ class ArtveeScraper {
     this.authCookie = options.authCookie || null;
     this.customHeaders = options.headers || {};
     this.isPremium = !!this.authCookie;
+    
+    // Retry and resume configuration
+    this.maxRetries = options.maxRetries !== undefined ? options.maxRetries : 3;
+    this.retryDelay = options.retryDelay || 1000; // Base delay in ms
+    this.enableResume = options.enableResume !== undefined ? options.enableResume : true;
   }
 
   /**
@@ -315,6 +320,9 @@ class ArtveeScraper {
    * @param {string} outputPath - Path where the image should be saved
    * @param {Object} options - Download options
    * @param {boolean} options.overwrite - Overwrite existing file (default: false)
+   * @param {boolean} options.resume - Resume interrupted download (default: true)
+   * @param {number} options.maxRetries - Maximum retry attempts (default: from constructor)
+   * @param {number} options.retryDelay - Base retry delay in ms (default: from constructor)
    * @returns {Promise<Object>} Download result with path and size
    */
   async downloadImage(imageUrl, outputPath, options = {}) {
@@ -323,25 +331,80 @@ class ArtveeScraper {
       showProgress = false, 
       progressBar = null,
       compress = false,
-      compressionOptions = {}
+      compressionOptions = {},
+      resume = this.enableResume,
+      maxRetries = this.maxRetries,
+      retryDelay = this.retryDelay
     } = options;
 
-    // Check if file already exists
-    if (!overwrite && fs.existsSync(outputPath)) {
+    // Check if file already exists and is complete
+    let existingSize = 0;
+    let isPartialDownload = false;
+    
+    if (fs.existsSync(outputPath)) {
       const stats = fs.statSync(outputPath);
-      // Update progress bar for skipped file
-      if (progressBar) {
-        const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-        progressBar.update(100, { size: `${sizeMB} MB (cached)` });
+      existingSize = stats.size;
+      
+      // Check if .partial marker exists (indicates incomplete download)
+      const partialMarker = `${outputPath}.partial`;
+      isPartialDownload = fs.existsSync(partialMarker);
+      
+      if (!overwrite && !isPartialDownload) {
+        // File exists and is complete - skip download
+        if (progressBar) {
+          const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+          progressBar.update(100, { size: `${sizeMB} MB (cached)` });
+        }
+        return {
+          success: true,
+          path: outputPath,
+          skipped: true,
+          size: stats.size,
+          message: 'File already exists'
+        };
       }
-      return {
-        success: true,
-        path: outputPath,
-        skipped: true,
-        size: stats.size,
-        message: 'File already exists'
-      };
+      
+      if (isPartialDownload && !resume) {
+        // Remove partial file if resume is disabled
+        fs.unlinkSync(outputPath);
+        fs.unlinkSync(partialMarker);
+        existingSize = 0;
+      }
     }
+
+    // Wrap the download in retry logic
+    return this._retryWithBackoff(async () => {
+      return await this._downloadImageInternal(imageUrl, outputPath, {
+        showProgress,
+        progressBar,
+        compress,
+        compressionOptions,
+        existingSize,
+        resume: resume && isPartialDownload
+      });
+    }, {
+      maxRetries,
+      retryDelay,
+      onRetry: (attempt, maxAttempts, delay, error) => {
+        console.log(`\n⚠️  Download failed (attempt ${attempt}/${maxAttempts}): ${error.message}`);
+        console.log(`   Retrying in ${(delay / 1000).toFixed(1)}s...`);
+      }
+    });
+  }
+
+  /**
+   * Internal download implementation with resume support
+   * @private
+   */
+  async _downloadImageInternal(imageUrl, outputPath, options) {
+    const { 
+      showProgress,
+      progressBar,
+      compress,
+      compressionOptions,
+      existingSize = 0,
+      resume = false
+    } = options;
 
     try {
       // Create directory if it doesn't exist
@@ -350,16 +413,45 @@ class ArtveeScraper {
         fs.mkdirSync(dir, { recursive: true });
       }
 
+      // Prepare headers for range request if resuming
+      const headers = this.getHeaders();
+      if (resume && existingSize > 0) {
+        headers['Range'] = `bytes=${existingSize}-`;
+      }
+
       // Download the image
       const response = await axios({
         method: 'GET',
         url: imageUrl,
         responseType: 'stream',
-        headers: this.getHeaders()
+        headers
       });
 
-      const totalSize = parseInt(response.headers['content-length'], 10);
-      let downloadedSize = 0;
+      // Check if server supports range requests
+      const acceptsRanges = response.headers['accept-ranges'] === 'bytes';
+      const contentRange = response.headers['content-range'];
+      const isResuming = resume && existingSize > 0 && (response.status === 206 || contentRange);
+
+      let totalSize = parseInt(response.headers['content-length'], 10);
+      if (contentRange) {
+        // Parse content-range: "bytes 1000-2000/3000"
+        const match = contentRange.match(/bytes (\d+)-(\d+)\/(\d+)/);
+        if (match) {
+          totalSize = parseInt(match[3], 10);
+        }
+      }
+
+      let downloadedSize = isResuming ? existingSize : 0;
+      const partialMarker = `${outputPath}.partial`;
+
+      // Create partial marker for incomplete downloads
+      if (!fs.existsSync(partialMarker)) {
+        fs.writeFileSync(partialMarker, JSON.stringify({
+          url: imageUrl,
+          totalSize,
+          startedAt: new Date().toISOString()
+        }));
+      }
 
       // Create a single progress bar if enabled and not provided
       let bar = progressBar;
@@ -367,8 +459,9 @@ class ArtveeScraper {
       
       if (showProgress && !bar && totalSize) {
         const filename = path.basename(outputPath).substring(0, 35).padEnd(35);
+        const resumeIndicator = isResuming ? '↻' : '📥';
         bar = new cliProgress.SingleBar({
-          format: `📥 ${filename} │{bar}│ {percentage}% │ {size} │ ETA: {eta}s`,
+          format: `${resumeIndicator} ${filename} │{bar}│ {percentage}% │ {size} │ ETA: {eta}s`,
           barCompleteChar: '█',
           barIncompleteChar: '░',
           hideCursor: true,
@@ -380,7 +473,9 @@ class ArtveeScraper {
             return v;
           }
         });
-        bar.start(totalSize, 0, { size: '0 MB' });
+        bar.start(totalSize, downloadedSize, { 
+          size: isResuming ? `${(downloadedSize / (1024 * 1024)).toFixed(2)} MB (resuming)` : '0 MB'
+        });
         shouldStopBar = true;
       }
 
@@ -405,12 +500,21 @@ class ArtveeScraper {
         });
       }
 
-      // Save to file
-      await pipeline(response.data, fs.createWriteStream(outputPath));
+      // Save to file (append if resuming)
+      const writeStream = fs.createWriteStream(outputPath, {
+        flags: isResuming ? 'a' : 'w'
+      });
+      
+      await pipeline(response.data, writeStream);
 
       // Stop progress bar if we created it
       if (shouldStopBar && bar) {
         bar.stop();
+      }
+
+      // Remove partial marker - download is complete
+      if (fs.existsSync(partialMarker)) {
+        fs.unlinkSync(partialMarker);
       }
 
       let stats = fs.statSync(outputPath);
@@ -430,15 +534,13 @@ class ArtveeScraper {
         size: stats.size,
         sizeFormatted: this.formatBytes(stats.size),
         skipped: false,
+        resumed: isResuming,
         compressed: compress && compressionResult?.success,
         compression: compressionResult
       };
     } catch (error) {
-      return {
-        success: false,
-        error: error.message,
-        path: outputPath
-      };
+      // Keep partial marker for potential resume
+      throw error;
     }
   }
 
@@ -458,6 +560,9 @@ class ArtveeScraper {
    * @param {number} options.compressionOptions.quality - Quality level 1-100 (default: 80)
    * @param {number} options.compressionOptions.width - Resize width in pixels
    * @param {number} options.compressionOptions.height - Resize height in pixels
+   * @param {boolean} options.resume - Resume interrupted download (default: true)
+   * @param {number} options.maxRetries - Maximum retry attempts (default: from constructor)
+   * @param {number} options.retryDelay - Base retry delay in ms (default: from constructor)
    * @returns {Promise<Object>} Download result
    */
   async downloadArtwork(artwork, downloadDir = './downloads', options = {}) {
@@ -468,7 +573,10 @@ class ArtveeScraper {
       showProgress = false,
       progressBar = null,
       compress = false,
-      compressionOptions = {}
+      compressionOptions = {},
+      resume = this.enableResume,
+      maxRetries = this.maxRetries,
+      retryDelay = this.retryDelay
     } = options;
 
     try {
@@ -538,7 +646,10 @@ class ArtveeScraper {
         showProgress, 
         progressBar,
         compress,
-        compressionOptions
+        compressionOptions,
+        resume,
+        maxRetries,
+        retryDelay
       });
 
       // Save metadata if it was prepared during detail fetching
@@ -668,6 +779,50 @@ class ArtveeScraper {
     console.log(`\nDownload complete: ${summary.successful} successful, ${summary.skipped} skipped, ${summary.failed} failed`);
 
     return summary;
+  }
+
+  /**
+   * Sleep helper for retry delays
+   * @private
+   */
+  _sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Retry a function with exponential backoff
+   * @private
+   */
+  async _retryWithBackoff(fn, context = {}) {
+    let lastError;
+    const maxRetries = context.maxRetries !== undefined ? context.maxRetries : this.maxRetries;
+    const baseDelay = context.retryDelay !== undefined ? context.retryDelay : this.retryDelay;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        
+        // Don't retry on last attempt
+        if (attempt === maxRetries) {
+          break;
+        }
+
+        // Calculate exponential backoff: baseDelay * 2^attempt
+        const delay = baseDelay * Math.pow(2, attempt);
+        const jitter = Math.random() * 0.3 * delay; // Add 0-30% jitter
+        const totalDelay = delay + jitter;
+
+        if (context.onRetry) {
+          context.onRetry(attempt + 1, maxRetries, totalDelay, error);
+        }
+
+        await this._sleep(totalDelay);
+      }
+    }
+
+    throw lastError;
   }
 
   /**
