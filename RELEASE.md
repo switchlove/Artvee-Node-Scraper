@@ -1,0 +1,262 @@
+# Release Guide
+
+Complete guide for releasing the Artvee Scraper package to npm and GitHub.
+
+## Prerequisites
+
+### 1. npm Account
+- Create an account at [npmjs.com](https://www.npmjs.com/signup)
+- Verify your email address
+- (Optional) Set up 2FA for security
+
+### 2. Login to npm
+```bash
+npm login
+```
+
+Enter your username, password, and email when prompted.
+
+### 3. Verify Login
+```bash
+npm whoami
+```
+
+## Pre-Release Checklist
+
+Before releasing, ensure:
+
+- [ ] All tests pass (`npm run test-scrape`, `npm run test-download`)
+- [ ] Documentation is up to date (README, wiki)
+- [ ] CHANGELOG.md is updated with new version changes
+- [ ] Version number is bumped in package.json
+- [ ] All changes are committed to git
+- [ ] No sensitive data in code (check config.js is in .gitignore)
+- [ ] .npmignore properly excludes unnecessary files
+
+## Versioning Strategy
+
+Follow [Semantic Versioning](https://semver.org/):
+
+- **MAJOR** (1.x.x): Breaking changes
+- **MINOR** (x.1.x): New features (backwards compatible)
+- **PATCH** (x.x.1): Bug fixes
+
+### Bump Version
+
+```bash
+# Patch release (1.0.0 -> 1.0.1)
+npm version patch
+
+# Minor release (1.0.0 -> 1.1.0)
+npm version minor
+
+# Major release (1.0.0 -> 2.0.0)
+npm version major
+```
+
+This automatically:
+- Updates package.json and package-lock.json
+- Creates a git commit
+- Creates a git tag
+
+## Publishing to npm
+
+### Method 1: Standard Publish
+
+```bash
+# Dry run (see what will be published)
+npm publish --dry-run
+
+# Publish to npm
+npm publish
+```
+
+### Method 2: Using npm Scripts
+
+```bash
+# Prepare and publish (recommended)
+npm run release:patch   # or release:minor, release:major
+```
+
+### Verify Publication
+
+```bash
+# Check if package exists
+npm view artvee-scraper
+
+# Install from npm to test
+npm install artvee-scraper
+```
+
+## Creating GitHub Releases
+
+### Manual Release
+
+1. Go to your repository on GitHub
+2. Click **Releases** → **Draft a new release**
+3. Choose a tag (e.g., v1.0.0)
+4. Set release title: "v1.0.0 - Initial Release"
+5. Add release notes from CHANGELOG.md
+6. Click **Publish release**
+
+### Automated Release (GitHub Actions)
+
+Push your tag to trigger the release:
+
+```bash
+git push origin main --tags
+```
+
+The GitHub workflow will automatically create a release.
+
+## Complete Release Process
+
+### Step-by-Step
+
+```bash
+# 1. Ensure you're on main and up to date
+git checkout main
+git pull origin main
+
+# 2. Run tests
+npm run test-scrape
+npm run test-download
+
+# 3. Update CHANGELOG.md
+# Add changes for the new version
+
+# 4. Commit changelog
+git add CHANGELOG.md
+git commit -m "docs: update changelog for v1.0.1"
+
+# 5. Bump version (creates commit and tag)
+npm version patch -m "chore: release v%s"
+
+# 6. Push changes and tags
+git push origin main --tags
+
+# 7. Publish to npm
+npm publish
+
+# 8. Create GitHub Release (manual or automatic)
+```
+
+## Post-Release
+
+### Update Badges
+
+Update version badge in README.md:
+```markdown
+[![npm version](https://img.shields.io/npm/v/artvee-scraper.svg)](https://www.npmjs.com/package/artvee-scraper)
+```
+
+### Announce Release
+
+- Update README if needed
+- Post on relevant forums/communities
+- Tweet about it (if applicable)
+
+## Unpublishing (Emergency Only)
+
+⚠️ **WARNING**: Unpublishing is heavily discouraged and only works within 72 hours.
+
+```bash
+# Unpublish a specific version
+npm unpublish artvee-scraper@1.0.0
+
+# Unpublish entire package (Use with extreme caution!)
+npm unpublish artvee-scraper --force
+```
+
+**Better alternative**: Publish a patched version if there's an issue.
+
+## Managing Package Access
+
+### Make Package Public
+
+```bash
+npm access public artvee-scraper
+```
+
+### Add Collaborators
+
+```bash
+npm owner add <username> artvee-scraper
+```
+
+## Deprecating Old Versions
+
+```bash
+# Deprecate a specific version
+npm deprecate artvee-scraper@1.0.0 "Please upgrade to 1.0.1 - fixes critical bug"
+
+# Deprecate all 1.x versions
+npm deprecate artvee-scraper@"1.x" "Please upgrade to 2.0.0"
+```
+
+## Beta/Alpha Releases
+
+For pre-release versions:
+
+```bash
+# Set version to beta
+npm version 1.1.0-beta.0
+
+# Publish with beta tag
+npm publish --tag beta
+
+# Users install with:
+# npm install artvee-scraper@beta
+```
+
+## Common Issues
+
+### "You do not have permission to publish"
+
+- Check you're logged in: `npm whoami`
+- Verify package name isn't taken: `npm view artvee-scraper`
+- Check organization scope if using @org/package
+
+### "Package name too similar to existing package"
+
+- Choose a different name
+- Or request transfer of unused package
+
+### Files not excluded
+
+- Check .npmignore configuration
+- Run `npm publish --dry-run` to preview
+
+## Quick Commands Reference
+
+```bash
+# Check what will be published
+npm pack --dry-run
+
+# Check package size
+npm pack
+tar -tzf artvee-scraper-1.0.0.tgz
+
+# View package info
+npm view artvee-scraper
+
+# Check outdated dependencies
+npm outdated
+
+# Update dependencies
+npm update
+
+# Audit security
+npm audit
+npm audit fix
+```
+
+## Release Automation with GitHub Actions
+
+See `.github/workflows/release.yml` for automated releases on tag push.
+
+## Need Help?
+
+- [npm documentation](https://docs.npmjs.com/)
+- [GitHub Releases](https://docs.github.com/en/repositories/releasing-projects-on-github)
+- [Semantic Versioning](https://semver.org/)

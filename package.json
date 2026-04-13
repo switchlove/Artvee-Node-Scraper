@@ -6,7 +6,14 @@
   "scripts": {
     "start": "node scraper.js",
     "test-scrape": "node examples/scraper.js",
-    "test-download": "node examples/download.js"
+    "test-download": "node examples/download.js",
+    "prepublishOnly": "npm run test-scrape",
+    "version": "npm run update-changelog && git add CHANGELOG.md",
+    "postversion": "git push && git push --tags",
+    "update-changelog": "echo 'Remember to update CHANGELOG.md manually'",
+    "release:patch": "npm version patch && npm publish",
+    "release:minor": "npm version minor && npm publish",
+    "release:major": "npm version major && npm publish"
   },
   "repository": {
     "type": "git",
