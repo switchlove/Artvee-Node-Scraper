@@ -1,10 +1,13 @@
 # Artvee Node Scraper
 
-[![npm version](https://img.shields.io/npm/v/artvee-node-scraper.svg)](https://www.npmjs.com/package/artvee-node-scraper)
-[![npm downloads](https://img.shields.io/npm/dm/artvee-node-scraper.svg)](https://www.npmjs.com/package/artvee-node-scraper)
-[![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![NPM Version](https://img.shields.io/npm/v/artvee-node-scraper?style=for-the-badge&logo=npm&logoColor=%23CB3837)](https://www.npmjs.com/package/artvee-node-scraper)
+[![Node Current](https://img.shields.io/node/v/artvee-node-scraper?style=for-the-badge&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
+[![Node LTS](https://img.shields.io/node/v-lts/artvee-node-scraper?style=for-the-badge&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
+[![NPM License](https://img.shields.io/npm/l/artvee-node-scraper?style=for-the-badge&logo=creativecommons&logoColor=%23ED592F)](LICENSE)
+
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/t/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper)
+[![GitHub Issues](https://img.shields.io/github/issues/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/pulls)
 
 A powerful Node.js scraper for [Artvee.com](https://artvee.com/) - download and organize high-quality public domain artwork with advanced filtering, progress tracking, and compression.
 
@@ -96,7 +99,11 @@ Auto-retry with exponential backoff. Resume interrupted downloads. See [Download
 
 ## ⚖️ License & Disclaimer
 
-**License:** ISC
+**License:** [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](LICENSE)
+
+This means you can use, modify, and distribute this code as long as you:
+- ✅ Give appropriate credit
+- ✅ Share derivatives under the same license
 
 **Educational Use Only** - Please respect [Artvee's Terms of Service](https://artvee.com/terms-of-service/). Use responsibly with appropriate delays and rate limiting.
 

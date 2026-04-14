@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced download tracking with formatted, aligned progress indicators
 - Filenames padded to 40 characters for perfect visual alignment
 - Progress bars use 25-character width for consistent display
+- **License changed from ISC to CC-BY-SA-4.0** (Creative Commons Attribution-ShareAlike 4.0 International)
 
 ### Security
 - **Enhanced path traversal protection in filename sanitization**
@@ -119,7 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned Features
 - [ ] CLI tool for command-line usage
 - [ ] Database integration options
-- [ ] Resume interrupted downloads
+- [ ] Advanced filtering (by color, style, etc.)
 
 ---
 
