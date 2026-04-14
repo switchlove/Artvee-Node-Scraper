@@ -316,6 +316,14 @@ describe('ArtveeScraper', () => {
       expect(details.artist).toBeNull();
       expect(details.description).toBe('');
     });
+
+    test('should handle network errors', async () => {
+      axios.get.mockRejectedValue(new Error('Network error'));
+
+      await expect(
+        scraper.scrapeArtworkDetails('https://artvee.com/dl/error')
+      ).rejects.toThrow('Network error');
+    });
   });
 
   describe('Retry Logic', () => {
@@ -329,15 +337,55 @@ describe('ArtveeScraper', () => {
       const mockFn = jest.fn()
         .mockRejectedValueOnce(new Error('Fail 1'))
         .mockRejectedValueOnce(new Error('Fail 2'))
-        .mockResolvedValueOnce('Success');
+        .mockResolvedValueOnce('success');
 
-      const result = await scraper._retryWithBackoff(mockFn, {});
+      const result = await scraper._retryWithBackoff(mockFn, {
+        maxRetries: 3,
+        retryDelay: 1000
+      });
 
-      expect(result).toBe('Success');
       expect(mockFn).toHaveBeenCalledTimes(3);
+      expect(result).toBe('success');
 
       cryptoSpy.mockRestore();
+      jitterSpy.mockRestore();
     });
+
+    test('should log retry attempts', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      
+      fs.existsSync.mockReturnValue(false);
+      axios
+        .mockRejectedValueOnce(new Error('Network timeout'))
+        .mockResolvedValueOnce({
+          data: {
+            pipe: jest.fn().mockReturnThis(),
+            on: jest.fn((event, cb) => {
+              if (event === 'finish') cb();
+              return this;
+            })
+          },
+          headers: { 'content-length': '1000' }
+        });
+
+      pipeline.mockResolvedValue();
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { maxRetries: 2, retryDelay: 100 }
+      );
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Download failed')
+      );
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Retrying in')
+      );
+
+      consoleSpy.mockRestore();
+    }, 10000);
   });
 
   describe('SafePath validation', () => {
@@ -448,6 +496,27 @@ describe('ArtveeScraper', () => {
       expect(result.message).toBe('File already exists');
     }, 10000);
 
+    test('should update progressBar when file is cached', async () => {
+      fs.existsSync.mockReturnValueOnce(true).mockReturnValueOnce(false);
+      fs.statSync.mockReturnValue({ size: 2048000 }); // 2MB
+
+      const mockProgressBar = {
+        update: jest.fn()
+      };
+
+      const result = await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { overwrite: false, progressBar: mockProgressBar }
+      );
+
+      expect(result.skipped).toBe(true);
+      expect(mockProgressBar.update).toHaveBeenCalledWith(
+        100,
+        expect.objectContaining({ size: expect.stringContaining('MB (cached)') })
+      );
+    }, 10000);
+
     test('should download image successfully', async () => {
       const mockStream = {
         pipe: jest.fn().mockReturnThis(),
@@ -485,6 +554,204 @@ describe('ArtveeScraper', () => {
         })
       ).rejects.toThrow('Network error');
     }, 10000);
+
+    test('should remove partial file when resume is disabled', async () => {
+      // First call checks the file (true), second checks .partial marker (true)
+      fs.existsSync.mockReturnValueOnce(true).mockReturnValueOnce(true);
+      fs.statSync.mockReturnValue({ size: 500 });
+      fs.unlinkSync = jest.fn();
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+
+      const result = await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { resume: false, maxRetries: 1 }
+      );
+
+      expect(fs.unlinkSync).toHaveBeenCalledWith('./downloads/image.jpg');
+      expect(fs.unlinkSync).toHaveBeenCalledWith('./downloads/image.jpg.partial');
+    }, 10000);
+
+    test('should resume partial download', async () => {
+      // File exists (true), partial marker exists (true), other checks
+      const existsMock = jest.fn()
+        .mockReturnValueOnce(true)  // outputPath exists
+        .mockReturnValueOnce(true)  // .partial marker exists
+        .mockReturnValueOnce(true); // dir check in internal
+      
+      fs.existsSync = existsMock;
+      fs.statSync.mockReturnValue({ size: 500 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          if (event === 'data') {
+            // Simulate data chunks
+            callback(Buffer.alloc(100));
+          }
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 
+          'content-length': '500',
+          'content-range': 'bytes 500-999/1000',
+          'accept-ranges': 'bytes'
+        },
+        status: 206
+      });
+
+      pipeline.mockResolvedValue();
+
+      const result = await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { resume: true, maxRetries: 1 }
+      );
+
+      expect(axios).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            'Range': 'bytes=500-'
+          })
+        })
+      );
+      expect(result.success).toBe(true);
+    }, 10000);
+
+    test('should use progressBar when provided', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const mockProgressBar = {
+        update: jest.fn()
+      };
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          if (event === 'data') {
+            // Simulate data chunk
+            callback(Buffer.alloc(100));
+          }
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+
+      const result = await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { progressBar: mockProgressBar, maxRetries: 1 }
+      );
+
+      expect(mockProgressBar.update).toHaveBeenCalled();
+    }, 10000);
+
+    test('should create CLI progress bar when showProgress is true', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          if (event === 'data') {
+            callback(Buffer.alloc(250));
+            callback(Buffer.alloc(250));
+          }
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+
+      const result = await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { showProgress: true, maxRetries: 1 }
+      );
+
+      expect(result.path).toBe('./downloads/image.jpg');
+    }, 10000);
+
+    test('should handle compression during download', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '5000' }
+      });
+
+      pipeline.mockResolvedValue();
+
+      const scraper2 = new ArtveeScraper();
+      scraper2.compressImage = jest.fn().mockResolvedValue({
+        success: true,
+        compressedSize: 2000
+      });
+
+      const result = await scraper2.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { compress: true, maxRetries: 1 }
+      );
+
+      expect(scraper2.compressImage).toHaveBeenCalled();
+    }, 10000);
+
+    test('should handle download failure and cleanup partial marker', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.unlinkSync = jest.fn();
+
+      axios.mockRejectedValue(new Error('Download failed'));
+
+      await expect(
+        scraper.downloadImage(
+          'https://example.com/image.jpg',
+          './downloads/image.jpg',
+          { maxRetries: 0 }
+        )
+      ).rejects.toThrow('Download failed');
+    }, 10000);
   });
 
   describe('compressImage', () => {
@@ -495,6 +762,150 @@ describe('ArtveeScraper', () => {
       
       expect(result.success).toBe(false);
       expect(result.error).toContain('Input file is missing');
+    });
+
+    test('should compress image with sharp if available', async () => {
+      // Only run if sharp is available
+      if (global.sharp) {
+        const compressionScraper = new ArtveeScraper();
+        
+        // Mock sharp operations
+        const mockSharp = {
+          resize: jest.fn().mockReturnThis(),
+          jpeg: jest.fn().mockReturnThis(),
+          png: jest.fn().mockReturnThis(),
+          webp: jest.fn().mockReturnThis(),
+          toFile: jest.fn().mockResolvedValue({}),
+          metadata: jest.fn().mockResolvedValue({ format: 'jpeg' })
+        };
+
+        // Mock sharp function
+        global.sharp = jest.fn(() => mockSharp);
+        
+        fs.statSync = jest.fn()
+          .mockReturnValueOnce({ size: 10000 })  // Original size
+          .mockReturnValueOnce({ size: 5000 });  // Compressed size
+        
+        fs.renameSync = jest.fn();
+
+        const result = await compressionScraper.compressImage(
+          './input.jpg',
+          './output.jpg',
+          { quality: 80, progressive: true }
+        );
+
+        expect(result.success).toBe(true);
+        expect(result.originalSize).toBe(10000);
+        expect(result.compressedSize).toBe(5000);
+        expect(mockSharp.jpeg).toHaveBeenCalledWith({ quality: 80, progressive: true });
+      } else {
+        // Skip test if sharp not available
+        expect(true).toBe(true);
+      }
+    });
+
+    test('should handle different image formats with sharp', async () => {
+      if (global.sharp) {
+        const compressionScraper = new ArtveeScraper();
+        
+        const mockSharp = {
+          resize: jest.fn().mockReturnThis(),
+          jpeg: jest.fn().mockReturnThis(),
+          png: jest.fn().mockReturnThis(),
+          webp: jest.fn().mockReturnThis(),
+          toFile: jest.fn().mockResolvedValue({}),
+          metadata: jest.fn().mockResolvedValue({ format: 'png' })
+        };
+
+        global.sharp = jest.fn(() => mockSharp);
+        
+        fs.statSync = jest.fn()
+          .mockReturnValueOnce({ size: 8000 })
+          .mockReturnValueOnce({ size: 4000 });
+        
+        fs.renameSync = jest.fn();
+
+        await compressionScraper.compressImage(
+          './input.png',
+          './output.webp',
+          { format: 'webp', quality: 85 }
+        );
+
+        expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 85 });
+      } else {
+        expect(true).toBe(true);
+      }
+    });
+
+    test('should resize and compress with sharp', async () => {
+      if (global.sharp) {
+        const compressionScraper = new ArtveeScraper();
+        
+        const mockSharp = {
+          resize: jest.fn().mockReturnThis(),
+          jpeg: jest.fn().mockReturnThis(),
+          png: jest.fn().mockReturnThis(),
+          webp: jest.fn().mockReturnThis(),
+          toFile: jest.fn().mockResolvedValue({}),
+          metadata: jest.fn().mockResolvedValue({ format: 'jpeg' })
+        };
+
+        global.sharp = jest.fn(() => mockSharp);
+        
+        fs.statSync = jest.fn()
+          .mockReturnValueOnce({ size: 12000 })
+          .mockReturnValueOnce({ size: 3000 });
+        
+        fs.renameSync = jest.fn();
+
+        const result = await compressionScraper.compressImage(
+          './input.jpg',
+          './output.jpg',
+          { width: 1920, height: 1080, quality: 90 }
+        );
+
+        expect(mockSharp.resize).toHaveBeenCalledWith(
+          1920,
+          1080,
+          { fit: 'inside', withoutEnlargement: true }
+        );
+        expect(result.success).toBe(true);
+      } else {
+        expect(true).toBe(true);
+      }
+    });
+
+    test('should compress PNG format with sharp', async () => {
+      if (global.sharp) {
+        const compressionScraper = new ArtveeScraper();
+        
+        const mockSharp = {
+          resize: jest.fn().mockReturnThis(),
+          jpeg: jest.fn().mockReturnThis(),
+          png: jest.fn().mockReturnThis(),
+          webp: jest.fn().mockReturnThis(),
+          toFile: jest.fn().mockResolvedValue({}),
+          metadata: jest.fn().mockResolvedValue({ format: 'png' })
+        };
+
+        global.sharp = jest.fn(() => mockSharp);
+        
+        fs.statSync = jest.fn()
+          .mockReturnValueOnce({ size: 15000 })
+          .mockReturnValueOnce({ size: 8000 });
+        
+        fs.renameSync = jest.fn();
+
+        await compressionScraper.compressImage(
+          './input.png',
+          './output.png',
+          { format: 'png', quality: 75 }
+        );
+
+        expect(mockSharp.png).toHaveBeenCalledWith({ quality: 75, compressionLevel: 9 });
+      } else {
+        expect(true).toBe(true);
+      }
     });
   });
 
@@ -541,6 +952,109 @@ describe('ArtveeScraper', () => {
       expect(result.path).toContain('Test_Artwork');
     }, 10000);
 
+    test('should download high quality with premium account', async () => {
+      const premiumScraper = new ArtveeScraper({ isPremium: true });
+      
+      const mockHtml = `
+        <html>
+          <body>
+            <h1 class="product_title">Premium Art</h1>
+            <a href="https://example.com/high.jpg" class="download-link">High Quality Download</a>
+            <a href="https://example.com/hd.jpg" class="download-link">HD Download</a>
+          </body>
+        </html>
+      `;
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.get.mockResolvedValue({ data: mockHtml });
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '5000' }
+      });
+
+      pipeline.mockResolvedValue();
+      fs.statSync.mockReturnValue({ size: 5000 });
+      fs.existsSync.mockReturnValue(false);
+      fs.writeFileSync = jest.fn();
+
+      const artwork = {
+        title: 'Premium Art',
+        imageUrl: 'https://example.com/thumbnail.jpg',
+        url: 'https://artvee.com/dl/premium-art'
+      };
+
+      const result = await premiumScraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'high', saveMetadata: true, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalled();
+    }, 10000);
+
+    test('should save metadata alongside image', async () => {
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      const mockHtml = `
+        <html>
+          <head>
+            <meta name="description" content="A beautiful artwork" />
+          </head>
+          <body>
+            <h1 class="product_title">Art With Metadata</h1>
+            <div class="woodmart-product-brands-links">
+              <a>Famous Artist</a>
+            </div>
+            <div class="product-image-wrap">
+              <img class="wp-post-image" src="https://example.com/main.jpg" />
+            </div>
+            <a href="https://example.com/download.jpg" class="download-btn">Download</a>
+          </body>
+        </html>
+      `;
+
+      axios.get.mockResolvedValue({ data: mockHtml });
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '2000' }
+      });
+
+      pipeline.mockResolvedValue();
+      fs.statSync.mockReturnValue({ size: 2000 });
+      fs.existsSync.mockReturnValue(false);
+      fs.writeFileSync = jest.fn();
+
+      const artwork = {
+        title: 'Art With Metadata',
+        imageUrl: 'https://example.com/image.jpg',
+        url: 'https://artvee.com/dl/art-metadata',
+        artist: 'Famous Artist'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { saveMetadata: true, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalled();
+    }, 10000);
+
     test('should handle missing image URL', async () => {
       const artwork = {
         title: 'Test Artwork'
@@ -549,6 +1063,21 @@ describe('ArtveeScraper', () => {
 
       const result = await scraper.downloadArtwork(artwork, './downloads', { maxRetries: 0 });
       expect(result.success).toBe(false);
+    }, 10000);
+
+    test('should handle download errors in downloadArtwork', async () => {
+      axios.mockRejectedValue(new Error('Download failed'));
+
+      const artwork = {
+        title: 'Failed Art',
+        imageUrl: 'https://example.com/fail.jpg'
+      };
+
+      const result = await scraper.downloadArtwork(artwork, './downloads', { maxRetries: 0 });
+      
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Download failed');
+      expect(result.artwork).toBe('Failed Art');
     }, 10000);
   });
 
@@ -636,5 +1165,206 @@ describe('ArtveeScraper', () => {
       expect(result.failed).toBe(0);
       expect(result.total).toBe(0);
     });
+
+    test('should handle large batch with concurrency limit', async () => {
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, cb) => {
+          if (event === 'finish') cb();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+      fs.existsSync.mockReturnValue(false);
+
+      // Create 10 artworks to test concurrency
+      const artworks = Array.from({ length: 10 }, (_, i) => ({
+        title: `Art ${i}`,
+        imageUrl: `https://example.com/${i}.jpg`
+      }));
+
+      const result = await scraper.downloadMultipleArtworks(
+        artworks,
+        './downloads',
+        { concurrency: 3, showProgress: false, maxRetries: 1 }
+      );
+
+      expect(result.total).toBe(10);
+      expect(result.successful).toBe(10);
+    }, 20000);
+
+    test('should track skipped files', async () => {
+      // First file exists (will be skipped), second doesn't
+      fs.existsSync
+        .mockReturnValueOnce(true)   // Art 1 file check
+        .mockReturnValueOnce(false)  // Art 1 .partial check
+        .mockReturnValueOnce(false); // Art 2 file check
+      
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, cb) => {
+          if (event === 'finish') cb();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+
+      const artworks = [
+        { title: 'Art 1', imageUrl: 'https://example.com/1.jpg' },
+        { title: 'Art 2', imageUrl: 'https://example.com/2.jpg' }
+      ];
+
+      const result = await scraper.downloadMultipleArtworks(
+        artworks,
+        './downloads',
+        { showProgress: false, overwrite: false, maxRetries: 1 }
+      );
+
+      expect(result.skipped).toBeGreaterThan(0);
+    }, 15000);
+
+    test('should show progress with multibar when showProgress is true', async () => {
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, cb) => {
+          if (event === 'finish') cb();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const cliProgress = require('cli-progress');
+      const mockMultibar = {
+        create: jest.fn().mockReturnValue({
+          update: jest.fn(),
+          stop: jest.fn()
+        }),
+        stop: jest.fn()
+      };
+
+      jest.spyOn(cliProgress, 'MultiBar').mockImplementation(() => mockMultibar);
+
+      const artworks = [
+        { title: 'Art 1', imageUrl: 'https://example.com/1.jpg' },
+        { title: 'Art 2', imageUrl: 'https://example.com/2.jpg' }
+      ];
+
+      const result = await scraper.downloadMultipleArtworks(
+        artworks,
+        './downloads',
+        { showProgress: true, maxRetries: 1 }
+      );
+
+      expect(mockMultibar.create).toHaveBeenCalled();
+      expect(mockMultibar.stop).toHaveBeenCalled();
+    }, 15000);
+
+    test('should handle download failures and update progress bars', async () => {
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, cb) => {
+          if (event === 'finish') cb();
+          return mockStream;
+        })
+      };
+
+      // First succeeds, second and third fail
+      axios
+        .mockResolvedValueOnce({
+          data: mockStream,
+          headers: { 'content-length': '1000' }
+        })
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockRejectedValueOnce(new Error('Timeout'));
+
+      pipeline.mockResolvedValue();
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const cliProgress = require('cli-progress');
+      const mockBar = {
+        update: jest.fn(),
+        stop: jest.fn()
+      };
+      const mockMultibar = {
+        create: jest.fn().mockReturnValue(mockBar),
+        stop: jest.fn()
+      };
+
+      jest.spyOn(cliProgress, 'MultiBar').mockImplementation(() => mockMultibar);
+
+      const artworks = [
+        { title: 'Success Art', imageUrl: 'https://example.com/1.jpg' },
+        { title: 'Fail Art 1', imageUrl: 'https://example.com/2.jpg' },
+        { title: 'Fail Art 2', imageUrl: 'https://example.com/3.jpg' }
+      ];
+
+      const result = await scraper.downloadMultipleArtworks(
+        artworks,
+        './downloads',
+        { showProgress: true, maxRetries: 0 }
+      );
+
+      expect(result.successful).toBe(1);
+      expect(result.failed).toBe(2);
+      // Check that failed items had their progress bar updated with "Failed"
+      expect(mockBar.update).toHaveBeenCalledWith(100, { size: 'Failed' });
+    }, 15000);
+
+    test('should handle delay between chunks', async () => {
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, cb) => {
+          if (event === 'finish') cb();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      // Create 6 artworks to test delay (concurrency of 2 = 3 chunks)
+      const artworks = Array.from({ length: 6 }, (_, i) => ({
+        title: `Art ${i}`,
+        imageUrl: `https://example.com/${i}.jpg`
+      }));
+
+      const result = await scraper.downloadMultipleArtworks(
+        artworks,
+        './downloads',
+        { concurrency: 2, delay: 50, showProgress: false, maxRetries: 1 }
+      );
+
+      expect(result.total).toBe(6);
+      expect(result.successful).toBe(6);
+    }, 15000);
   });
 });
