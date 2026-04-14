@@ -1,14 +1,31 @@
-const ArtveeScraper = require('../scraper.js');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
-const { pipeline } = require('stream/promises');
-
+// Mock modules before importing scraper
 jest.mock('axios');
 jest.mock('fs');
 jest.mock('stream/promises', () => ({
   pipeline: jest.fn()
 }));
+
+// Create a mock sharp module
+const mockSharpTransform = {
+  resize: jest.fn().mockReturnThis(),
+  jpeg: jest.fn().mockReturnThis(),
+  png: jest.fn().mockReturnThis(),
+  webp: jest.fn().mockReturnThis(),
+  toFile: jest.fn().mockResolvedValue({}),
+  metadata: jest.fn().mockResolvedValue({ format: 'jpeg' })
+};
+
+const mockSharpFunction = jest.fn(() => mockSharpTransform);  
+mockSharpFunction.mockReturnValue(mockSharpTransform);
+
+jest.mock('sharp', () => mockSharpFunction);
+
+// Import after mocks are set up
+const ArtveeScraper = require('../scraper.js');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
+const { pipeline } = require('stream/promises');
 
 describe('ArtveeScraper', () => {
   let scraper;
@@ -752,160 +769,297 @@ describe('ArtveeScraper', () => {
         )
       ).rejects.toThrow('Download failed');
     }, 10000);
+
+    test('should remove partial marker after successful download', async () => {
+      const existsMock = jest.fn()
+        .mockReturnValueOnce(false)  // Initial file check
+        .mockReturnValueOnce(false)  // .partial marker check  
+        .mockReturnValueOnce(true)   // dir exists
+        .mockReturnValueOnce(true);  // .partial exists after download
+      
+      fs.existsSync = existsMock;
+      fs.unlinkSync = jest.fn();
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+
+      await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { maxRetries: 1 }
+      );
+
+      expect(fs.unlinkSync).toHaveBeenCalledWith('./downloads/image.jpg.partial');
+    }, 10000);
   });
 
   describe('compressImage', () => {
-    test('should return error if input file is missing', async () => {
-      const scraperNoSharp = new ArtveeScraper();
+    beforeEach(() => {
+      // Reset mock counts before each test
+      jest.clearAllMocks();
+      mockSharpTransform.resize.mockClear();
+      mockSharpTransform.jpeg.mockClear();
+      mockSharpTransform.png.mockClear();
+      mockSharpTransform.webp.mockClear();
+      mockSharpTransform.toFile.mockClear();
+      mockSharpTransform.metadata.mockClear();
       
-      const result = await scraperNoSharp.compressImage('./input.jpg', './output.jpg');
+      // Reset default return values
+      mockSharpTransform.metadata.mockResolvedValue({ format: 'jpeg' });
+      mockSharpTransform.toFile.mockResolvedValue({});
+    });
+
+    test('should return error if input file is missing', async () => {
+      const compressionScraper = new ArtveeScraper();
+      fs.statSync = jest.fn(() => {
+        throw new Error('ENOENT: no such file or directory');
+      });
+      
+      const result = await compressionScraper.compressImage('./input.jpg', './output.jpg');
       
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Input file is missing');
+      expect(result.error).toBeDefined();
     });
 
-    test('should compress image with sharp if available', async () => {
-      // Only run if sharp is available
-      if (global.sharp) {
-        const compressionScraper = new ArtveeScraper();
-        
-        // Mock sharp operations
-        const mockSharp = {
-          resize: jest.fn().mockReturnThis(),
-          jpeg: jest.fn().mockReturnThis(),
-          png: jest.fn().mockReturnThis(),
-          webp: jest.fn().mockReturnThis(),
-          toFile: jest.fn().mockResolvedValue({}),
-          metadata: jest.fn().mockResolvedValue({ format: 'jpeg' })
-        };
+    test('should compress JPEG with explicit format', async () => {
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 10000 })
+        .mockReturnValueOnce({ size: 5000 });
+      
+      fs.renameSync = jest.fn();
 
-        // Mock sharp function
-        global.sharp = jest.fn(() => mockSharp);
-        
-        fs.statSync = jest.fn()
-          .mockReturnValueOnce({ size: 10000 })  // Original size
-          .mockReturnValueOnce({ size: 5000 });  // Compressed size
-        
-        fs.renameSync = jest.fn();
+      const compressionScraper = new ArtveeScraper();
+      const result = await compressionScraper.compressImage(
+        './input.jpg',
+        './output.jpg',
+        { format: 'jpeg', quality: 80, progressive: true }
+      );
 
-        const result = await compressionScraper.compressImage(
-          './input.jpg',
-          './output.jpg',
-          { quality: 80, progressive: true }
-        );
-
-        expect(result.success).toBe(true);
-        expect(result.originalSize).toBe(10000);
-        expect(result.compressedSize).toBe(5000);
-        expect(mockSharp.jpeg).toHaveBeenCalledWith({ quality: 80, progressive: true });
-      } else {
-        // Skip test if sharp not available
-        expect(true).toBe(true);
-      }
+      expect(result.success).toBe(true);
+      expect(result.originalSize).toBe(10000);
+      expect(result.compressedSize).toBe(5000);
+      expect(mockSharpTransform.jpeg).toHaveBeenCalledWith({ quality: 80, progressive: true });
+      expect(result.savingsPercent).toBe('50.0');
     });
 
-    test('should handle different image formats with sharp', async () => {
-      if (global.sharp) {
-        const compressionScraper = new ArtveeScraper();
-        
-        const mockSharp = {
-          resize: jest.fn().mockReturnThis(),
-          jpeg: jest.fn().mockReturnThis(),
-          png: jest.fn().mockReturnThis(),
-          webp: jest.fn().mockReturnThis(),
-          toFile: jest.fn().mockResolvedValue({}),
-          metadata: jest.fn().mockResolvedValue({ format: 'png' })
-        };
+    test('should compress PNG with explicit format', async () => {
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 15000 })
+        .mockReturnValueOnce({ size: 8000 });
+      
+      fs.renameSync = jest.fn();
 
-        global.sharp = jest.fn(() => mockSharp);
-        
-        fs.statSync = jest.fn()
-          .mockReturnValueOnce({ size: 8000 })
-          .mockReturnValueOnce({ size: 4000 });
-        
-        fs.renameSync = jest.fn();
+      const compressionScraper = new ArtveeScraper();
+      await compressionScraper.compressImage(
+        './input.png',
+        './output.png',
+        { format: 'png', quality: 75 }
+      );
 
-        await compressionScraper.compressImage(
-          './input.png',
-          './output.webp',
-          { format: 'webp', quality: 85 }
-        );
-
-        expect(mockSharp.webp).toHaveBeenCalledWith({ quality: 85 });
-      } else {
-        expect(true).toBe(true);
-      }
+      expect(mockSharpTransform.png).toHaveBeenCalledWith({ quality: 75, compressionLevel: 9 });
     });
 
-    test('should resize and compress with sharp', async () => {
-      if (global.sharp) {
-        const compressionScraper = new ArtveeScraper();
-        
-        const mockSharp = {
-          resize: jest.fn().mockReturnThis(),
-          jpeg: jest.fn().mockReturnThis(),
-          png: jest.fn().mockReturnThis(),
-          webp: jest.fn().mockReturnThis(),
-          toFile: jest.fn().mockResolvedValue({}),
-          metadata: jest.fn().mockResolvedValue({ format: 'jpeg' })
-        };
+    test('should compress WebP with explicit format', async () => {
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 12000 })
+        .mockReturnValueOnce({ size: 6000 });
+      
+      fs.renameSync = jest.fn();
 
-        global.sharp = jest.fn(() => mockSharp);
-        
-        fs.statSync = jest.fn()
-          .mockReturnValueOnce({ size: 12000 })
-          .mockReturnValueOnce({ size: 3000 });
-        
-        fs.renameSync = jest.fn();
+      const compressionScraper = new ArtveeScraper();
+      await compressionScraper.compressImage(
+        './input.webp',
+        './output.webp',
+        { format: 'webp', quality: 85 }
+      );
 
-        const result = await compressionScraper.compressImage(
-          './input.jpg',
-          './output.jpg',
-          { width: 1920, height: 1080, quality: 90 }
-        );
-
-        expect(mockSharp.resize).toHaveBeenCalledWith(
-          1920,
-          1080,
-          { fit: 'inside', withoutEnlargement: true }
-        );
-        expect(result.success).toBe(true);
-      } else {
-        expect(true).toBe(true);
-      }
+      expect(mockSharpTransform.webp).toHaveBeenCalledWith({ quality: 85 });
     });
 
-    test('should compress PNG format with sharp', async () => {
-      if (global.sharp) {
-        const compressionScraper = new ArtveeScraper();
-        
-        const mockSharp = {
-          resize: jest.fn().mockReturnThis(),
-          jpeg: jest.fn().mockReturnThis(),
-          png: jest.fn().mockReturnThis(),
-          webp: jest.fn().mockReturnThis(),
-          toFile: jest.fn().mockResolvedValue({}),
-          metadata: jest.fn().mockResolvedValue({ format: 'png' })
-        };
+    test('should auto-detect JPEG format from metadata', async () => {
+      mockSharpTransform.metadata.mockResolvedValue({ format: 'jpeg' });
+      
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 20000 })
+        .mockReturnValueOnce({ size: 10000 });
+      
+      fs.renameSync = jest.fn();
 
-        global.sharp = jest.fn(() => mockSharp);
-        
-        fs.statSync = jest.fn()
-          .mockReturnValueOnce({ size: 15000 })
-          .mockReturnValueOnce({ size: 8000 });
-        
-        fs.renameSync = jest.fn();
+      const compressionScraper = new ArtveeScraper();
+      await compressionScraper.compressImage(
+        './input.jpg',
+        './output.jpg',
+        { quality: 90 }  // No format specified
+      );
 
-        await compressionScraper.compressImage(
-          './input.png',
-          './output.png',
-          { format: 'png', quality: 75 }
-        );
+      expect(mockSharpTransform.metadata).toHaveBeenCalled();
+      expect(mockSharpTransform.jpeg).toHaveBeenCalledWith({ quality: 90, progressive: true });
+    });
 
-        expect(mockSharp.png).toHaveBeenCalledWith({ quality: 75, compressionLevel: 9 });
-      } else {
-        expect(true).toBe(true);
-      }
+    test('should auto-detect PNG format from metadata', async () => {
+      mockSharpTransform.metadata.mockResolvedValue({ format: 'png' });
+      
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 18000 })
+        .mockReturnValueOnce({ size: 9000 });
+      
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      await compressionScraper.compressImage(
+        './input.png',
+        './output.png',
+        { quality: 85 }  // No format specified
+      );
+
+      expect(mockSharpTransform.metadata).toHaveBeenCalled();
+      expect(mockSharpTransform.png).toHaveBeenCalledWith({ quality: 85, compressionLevel: 9 });
+    });
+
+    test('should auto-detect WebP format from metadata', async () => {
+      mockSharpTransform.metadata.mockResolvedValue({ format: 'webp' });
+      
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 14000 })
+        .mockReturnValueOnce({ size: 7000 });
+      
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      await compressionScraper.compressImage(
+        './input.webp',
+        './output.webp',
+        { quality: 80 }  // No format specified
+      );
+
+      expect(mockSharpTransform.metadata).toHaveBeenCalled();
+      expect(mockSharpTransform.webp).toHaveBeenCalledWith({ quality: 80 });
+    });
+
+    test('should resize and compress with dimensions', async () => {
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 25000 })
+        .mockReturnValueOnce({ size: 8000 });
+      
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      const result = await compressionScraper.compressImage(
+        './input.jpg',
+        './output.jpg',
+        { width: 1920, height: 1080, quality: 85 }
+      );
+
+      expect(mockSharpTransform.resize).toHaveBeenCalledWith(
+        1920,
+        1080,
+        { fit: 'inside', withoutEnlargement: true }
+      );
+      expect(result.success).toBe(true);
+    });
+
+    test('should use input path as output if not specified', async () => {
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 10000 })
+        .mockReturnValueOnce({ size: 5000 });
+      
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      const result = await compressionScraper.compressImage('./input.jpg');
+
+      expect(result.path).toBe('./input.jpg');
+      expect(fs.renameSync).toHaveBeenCalledWith('./input.jpg.tmp', './input.jpg');
+    });
+
+    test('should handle compression errors gracefully', async () => {
+      mockSharpTransform.toFile.mockRejectedValue(new Error('Sharp processing failed'));
+      
+      fs.statSync = jest.fn().mockReturnValueOnce({ size: 10000 });
+
+      const compressionScraper = new ArtveeScraper();
+      const result = await compressionScraper.compressImage(
+        './input.jpg',
+        './output.jpg'
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Sharp processing failed');
+      expect(result.path).toBe('./output.jpg');
+    });
+
+    test('should handle jpg format as jpeg', async () => {
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 10000 })
+        .mockReturnValueOnce({ size: 5000 });
+      
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      
+      // Test with 'jpg' format parameter
+      await compressionScraper.compressImage(
+        './input.jpg',
+        './output.jpg',
+        { format: 'jpg', quality: 80 }
+      );
+
+      expect(mockSharpTransform.jpeg).toHaveBeenCalledWith({ quality: 80, progressive: true });
+    });
+
+    test('should auto-detect jpg format from metadata', async () => {
+      mockSharpTransform.metadata.mockResolvedValue({ format: 'jpg' });
+      
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 10000 })
+        .mockReturnValueOnce({ size: 5000 });
+      
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      
+      // No format specified, should auto-detect from metadata
+      await compressionScraper.compressImage(
+        './input.jpg',
+        './output.jpg',
+        { quality: 80 }
+      );
+
+      expect(mockSharpTransform.metadata).toHaveBeenCalled();
+      expect(mockSharpTransform.jpeg).toHaveBeenCalledWith({ quality: 80, progressive: true });
+    });
+
+    test('should include formatted file sizes in result', async () => {
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 10485760 })  // 10 MB
+        .mockReturnValueOnce({ size: 5242880 });   // 5 MB
+      
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      const result = await compressionScraper.compressImage(
+        './input.jpg',
+        './output.jpg',
+        { quality: 80 }
+      );
+
+      expect(result.originalSizeFormatted).toBe('10 MB');
+      expect(result.compressedSizeFormatted).toBe('5 MB');
+      expect(result.savingsFormatted).toBe('5 MB');
+      expect(result.savings).toBe(5242880);
     });
   });
 
