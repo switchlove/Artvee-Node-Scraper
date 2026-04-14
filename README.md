@@ -1,15 +1,15 @@
 # Artvee Node Scraper
 
-[![NPM Version](https://img.shields.io/npm/v/artvee-node-scraper?style=for-the-badge&logo=npm&logoColor=%23CB3837)](https://www.npmjs.com/package/artvee-node-scraper)
-[![Node Current](https://img.shields.io/node/v/artvee-node-scraper?style=for-the-badge&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
-[![Node LTS](https://img.shields.io/node/v-lts/artvee-node-scraper?style=for-the-badge&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
-[![NPM License](https://img.shields.io/npm/l/artvee-node-scraper?style=for-the-badge&logo=creativecommons&logoColor=%23ED592F)](LICENSE)
+[![NPM Version](https://img.shields.io/npm/v/artvee-node-scraper?style=flat-square&logo=npm&logoColor=%23CB3837)](https://www.npmjs.com/package/artvee-node-scraper)
+[![Node Current](https://img.shields.io/node/v/artvee-node-scraper?style=flat-square&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
+[![Node LTS](https://img.shields.io/node/v-lts/artvee-node-scraper?style=flat-square&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
+[![NPM License](https://img.shields.io/npm/l/artvee-node-scraper?style=flat-square&logo=creativecommons&logoColor=%23ED592F)](LICENSE)
 
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/t/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper)
-[![GitHub Issues](https://img.shields.io/github/issues/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/pulls)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/theoephraim/node-google-spreadsheet/actions/workflows/ci.yml)
-[![Coverage Status](https://img.shields.io/coverallsCoverage/github/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://coveralls.io/github/switchlove/Artvee-Node-Scraper?branch=main)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/t/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper)
+[![GitHub Issues](https://img.shields.io/github/issues/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/issues)
+[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/pulls)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&style=flat-square&logo=github&logoColor=%23181717)](https://github.com/theoephraim/node-google-spreadsheet/actions/workflows/ci.yml)
+[![Coverage Status](https://img.shields.io/coverallsCoverage/github/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://coveralls.io/github/switchlove/Artvee-Node-Scraper?branch=main)
 
 
 A powerful Node.js scraper for [Artvee.com](https://artvee.com/) - download and organize high-quality public domain artwork with advanced filtering, progress tracking, and compression.
