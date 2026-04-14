@@ -3,238 +3,103 @@
 [![npm version](https://img.shields.io/npm/v/artvee-node-scraper.svg)](https://www.npmjs.com/package/artvee-node-scraper)
 [![npm downloads](https://img.shields.io/npm/dm/artvee-node-scraper.svg)](https://www.npmjs.com/package/artvee-node-scraper)
 [![License: ISC](https://img.shields.io/badge/License-ISC-green.svg)](LICENSE)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D14.0.0-brightgreen.svg)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen.svg)](https://nodejs.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-A Node.js web scraper for [Artvee.com](https://artvee.com/) that allows you to scrape, filter, and download high-quality public domain artwork.
+A powerful Node.js scraper for [Artvee.com](https://artvee.com/) - download and organize high-quality public domain artwork with advanced filtering, progress tracking, and compression.
 
-## Features
+## ✨ Features
 
-- 🎨 **Scrape artworks** - Filter by category, century, and orientation
-- 💾 **Download images** - Three quality levels (thumbnail, standard, high)
-- � **Progress tracking** - Visual progress bars for downloads
-- 🗜️ **Image compression** - Reduce file sizes with quality/format options
-- 🔐 **Premium support** - Access highest quality images with premium account
-- 📦 **Batch processing** - Download multiple artworks with configurable concurrency
-- 📄 **Export metadata** - Save artwork details as JSON
-- 📑 **Pagination** - Navigate through large collections
+- 🎨 **Smart Filtering** - Search by category, century, orientation
+- 💾 **Multi-Quality Downloads** - Thumbnail, standard (1800px), high (up to 7000px+)
+- 📊 **Progress Tracking** - Beautiful visual progress bars with file sizes
+- 🗜️ **Image Compression** - Reduce file sizes by 80%+ with format conversion
+- 🔄 **Auto Retry & Resume** - Robust downloads with exponential backoff
+- ⚡ **Batch Processing** - Concurrent downloads with rate limiting
+- 📦 **Metadata Export** - Save artwork details as JSON
+- 🔐 **Premium Support** - Full premium account integration
 
-## Quick Start
-
-### Installation
+## 🚀 Quick Start
 
 ```bash
 npm install
 ```
 
-### Basic Usage
-
 ```javascript
 const ArtveeScraper = require('./scraper');
-const scraper = new ArtveeScraper();
 
-// Scrape 17th century landscape artworks
+// Initialize scraper
+const scraper = new ArtveeScraper({
+  maxRetries: 3,      // Auto-retry failed downloads
+  enableResume: true  // Resume interrupted downloads
+});
+
+// Scrape artworks
 const results = await scraper.scrapeArtworks({
   category: 'landscape',
   century: '17th-century',
-  orientation: 'landscape',
   perPage: 20
 });
 
-console.log(`Found ${results.totalResults} artworks`);
-```
-
-### Download Artworks
-
-```javascript
-// Download with standard quality (1800px) and progress bars
+// Download with progress bars
 await scraper.downloadMultipleArtworks(
   results.artworks,
   './downloads',
   {
     quality: 'standard',
-    includeDetails: true,
-    delay: 1500,
-    showProgress: true  // Visual progress bars (default: true)
+    compress: true,
+    showProgress: true
   }
 );
 ```
 
-### Progress Bars
+## 📚 Documentation
 
-Downloads now display beautifully formatted progress bars with perfect alignment:
+**[📖 Visit the Wiki](../../wiki)** for complete documentation:
 
-```
-📥 17th_Century_Landscape                  │█████████████████████████│ 100% │ 2.30 MB
-📥 Dutch_Harbor_Scene                      │████████████░░░░░░░░░░░░░│  60% │ 1.25/2.10 MB
-📥 Italian_Countryside                     │█████████████████████████│ 100% │ 1.87 MB (cached)
-```
+| Guide | Description |
+|-------|-------------|
+| [Installation](../../wiki/Installation) | Setup and dependencies |
+| [Usage Guide](../../wiki/Usage) | Scraping and filtering |
+| [Download Guide](../../wiki/Download-Guide) | Progress bars, retry, resume |
+| [Compression Guide](../../wiki/Compression-Guide) | Image optimization |
+| [API Reference](../../wiki/API-Reference) | Complete API docs |
+| [Examples](../../wiki/Examples) | 14+ code examples |
+| [Premium Account](../../wiki/Premium-Account) | Premium features |
+| [FAQ](../../wiki/FAQ) | Common questions |
+| [Troubleshooting](../../wiki/Troubleshooting) | Debug issues |
 
-**Features:**
-- ✓ Real-time download progress with human-readable file sizes
-- ✓ 40-character filename padding for perfect alignment
-- ✓ Shows "(cached)" indicator for existing files
-- ✓ Clean visual separators for better readability
+## 🎯 Quick Examples
 
-```javascript
-// Multiple downloads with progress bars (default)
-await scraper.downloadMultipleArtworks(artworks, './downloads', {
-  showProgress: true  // default
-});
-
-// Disable progress bars for legacy output
-await scraper.downloadMultipleArtworks(artworks, './downloads', {
-  showProgress: false
-});
-
-// Single download with progress bar
-await scraper.downloadArtwork(artwork, './downloads', {
-  showProgress: true
-});
-```
-
-### Image Compression
-
-Reduce file sizes while maintaining quality using built-in compression:
-
-```javascript
-// Basic compression (80% quality, default)
-await scraper.downloadArtwork(artwork, './downloads', {
-  quality: 'standard',
-  compress: true
-});
-
-// High compression (60% quality for smaller files)
-await scraper.downloadArtwork(artwork, './downloads', {
-  compress: true,
-  compressionOptions: {
-    quality: 60
-  }
-});
-
-// Resize and compress
-await scraper.downloadArtwork(artwork, './downloads', {
-  compress: true,
-  compressionOptions: {
-    quality: 80,
-    width: 1200  // Resize to 1200px width
-  }
-});
-
-// Convert to WebP format (best compression)
-await scraper.downloadArtwork(artwork, './downloads', {
-  compress: true,
-  compressionOptions: {
-    format: 'webp',
-    quality: 85
-  }
-});
-```
-
-**Compression Options:**
-- `quality`: 1-100 (default: 80)
-- `format`: 'jpeg', 'png', 'webp'
-- `width`: Resize width in pixels
-- `height`: Resize height in pixels
-- `progressive`: Progressive JPEG (default: true)
-
-**Note:** Requires `sharp` package: `npm install sharp`
-
-### Automatic Retry & Resume
-
-Downloads automatically retry on failure with exponential backoff and can resume interrupted downloads:
-
-```javascript
-// Create scraper with retry configuration
-const scraper = new ArtveeScraper({
-  maxRetries: 3,        // Retry up to 3 times (default: 3)
-  retryDelay: 1000,     // Base delay 1 second (default: 1000ms)
-  enableResume: true    // Enable resume (default: true)
-});
-
-// Downloads will automatically:
-// - Retry on network failures with exponential backoff
-// - Resume interrupted downloads using HTTP Range headers
-// - Track partial downloads with .partial markers
-```
-
-**Retry Behavior:**
-- Failed downloads retry automatically with exponential backoff
-- Delays: 1s → 2s → 4s → 8s (with random jitter to prevent thundering herd)
-- Retry messages show attempt number and delay time
-- Errors thrown after exhausting all retries
-
-**Resume Capability:**
-- Interrupted downloads create `.partial` marker files
-- On next attempt, resumes from last byte using HTTP Range headers
-- Markers automatically removed when download completes
-- Resume indicator (↻) shown in progress bar
-- Can be disabled per-download or globally
-
-```javascript
-// Download with custom retry settings
-await scraper.downloadArtwork(artwork, './downloads', {
-  maxRetries: 5,        // More aggressive retry
-  retryDelay: 500,      // Faster initial retry
-  resume: true          // Resume if interrupted
-});
-
-// Disable resume for fresh download
-await scraper.downloadArtwork(artwork, './downloads', {
-  resume: false,        // Always start fresh
-  overwrite: true
-});
-```
-
-### Run Examples
+See [examples/](examples/) directory or run:
 
 ```bash
-npm run test-scrape       # Run scraping examples
-npm run test-download     # Run download examples
-npm run test-compression  # Run compression examples
+npm run test-scrape          # Scraping demo
+npm run test-download        # Download demo
+npm run test-compression     # Compression demo
+npm run demo-retry-resume    # Retry/resume demo
 ```
 
-## Documentation
+## 💡 Key Features
 
-📚 **[Visit the Wiki](../../wiki)** for comprehensive documentation:
+### Progress Bars
+```
+📥 17th_Century_Landscape      │█████████████████│ 100% │ 2.30 MB
+↻ Dutch_Harbor_Scene           │█████████░░░░░░░░│  60% │ 1.25/2.10 MB (resuming)
+```
 
-- **[Installation Guide](../../wiki/Installation)** - Setup and configuration
-- **[Usage Guide](../../wiki/Usage)** - Basic scraping and filtering
-- **[Download Guide](../../wiki/Download-Guide)** - Image download options
-- **[API Reference](../../wiki/API-Reference)** - Complete API documentation
-- **[Premium Account](../../wiki/Premium-Account)** - Premium setup guide
-- **[Examples](../../wiki/Examples)** - 14+ practical code examples
-- **[FAQ](../../wiki/FAQ)** - Common questions
-- **[Troubleshooting](../../wiki/Troubleshooting)** - Debug and fix issues
+### Compression
+Reduce file sizes by 80%+ with quality/format control. See [Compression Guide](../../wiki/Compression-Guide).
 
-## Available Filters
+### Retry & Resume
+Auto-retry with exponential backoff. Resume interrupted downloads. See [Download Guide](../../wiki/Download-Guide).
 
-**Categories:** abstract, figurative, landscape, posters, illustration, religion, mythology, drawings, still-life, plants-animals4
+## ⚖️ License & Disclaimer
 
-**Centuries:** 15th-century through 21st-century
+**License:** ISC
 
-**Orientations:** landscape, portrait, square, panorama
+**Educational Use Only** - Please respect [Artvee's Terms of Service](https://artvee.com/terms-of-service/). Use responsibly with appropriate delays and rate limiting.
 
-## Image Quality Levels
+---
 
-| Quality | Resolution | File Size | Account Type |
-|---------|-----------|-----------|--------------|
-| `thumbnail` | ~500px | 50-100 KB | Free |
-| `standard` | 1800px | 1-3 MB | Free |
-| `high` | 4000-7000px+ | 10-30 MB | Premium |
-
-## Rate Limiting
-
-Please be respectful when using this scraper:
-- ✅ Add delays between requests (recommended: 1500ms)
-- ✅ Limit concurrent downloads (recommended: 3 max)
-- ✅ Cache results when possible
-- ❌ Don't overwhelm the server
-
-## License
-
-ISC
-
-## Disclaimer
-
-This scraper is for educational purposes only. Please respect [Artvee's Terms of Service](https://artvee.com/terms-of-service/) and use responsibly.
+**[📖 Full Documentation](../../wiki)** • **[Examples](examples/)** • **[Issues](../../issues)** • **[Contributing](CONTRIBUTING.md)**
