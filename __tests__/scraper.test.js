@@ -92,6 +92,11 @@ describe('ArtveeScraper', () => {
       const result = scraper.sanitizeFilename('.hidden-file.jpg');
       expect(result).not.toMatch(/^\./);
     });
+
+    test('should fallback to artwork when sanitization removes all content', () => {
+      const result = scraper.sanitizeFilename('....----....');
+      expect(result).toBe('artwork');
+    });
   });
 
   describe('buildUrl', () => {
@@ -174,6 +179,11 @@ describe('ArtveeScraper', () => {
       const artist = scraper.extractArtist('Title -');
       expect(artist).toBeNull();
     });
+
+    test('should return null for empty artist after comma', () => {
+      const artist = scraper.extractArtist('Title,   ');
+      expect(artist).toBeNull();
+    });
   });
 
   describe('getHeaders', () => {
@@ -247,6 +257,38 @@ describe('ArtveeScraper', () => {
       expect(result.artworks).toHaveLength(0);
       expect(result.totalResults).toBe(0);
     });
+
+    test('should use defaults when options are omitted', async () => {
+      axios.get.mockResolvedValue({ data: '<html><body></body></html>' });
+
+      const result = await scraper.scrapeArtworks();
+
+      expect(result.filters.category).toBe('landscape');
+      expect(result.filters.perPage).toBe(70);
+      expect(result.filters.page).toBe(1);
+    });
+
+    test('should handle missing artwork fields in product HTML', async () => {
+      const mockHtml = `
+        <html>
+          <body>
+            <div class="product">
+              <img class="lazy" src="https://example.com/art1.jpg" />
+              <a class="linko"></a>
+              <div class="woodmart-product-brands-links"></div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      axios.get.mockResolvedValue({ data: mockHtml });
+      const result = await scraper.scrapeArtworks({ category: 'landscape' });
+
+      expect(result.artworks).toHaveLength(1);
+      expect(result.artworks[0].title).toBe('');
+      expect(result.artworks[0].url).toBeNull();
+      expect(result.artworks[0].artist).toBeNull();
+    });
   });
 
   describe('extractPagination', () => {
@@ -283,6 +325,35 @@ describe('ArtveeScraper', () => {
       expect(pagination.totalPages).toBe(1);
       expect(pagination.hasNextPage).toBe(false);
       expect(pagination.hasPrevPage).toBe(false);
+    });
+
+    test('should fallback current page to 1 when current text is invalid', () => {
+      const mockHtml = `
+        <div class="woocommerce-pagination">
+          <span class="page-numbers current">not-a-number</span>
+          <a class="page-numbers">2</a>
+        </div>
+      `;
+      const cheerio = require('cheerio');
+      const $ = cheerio.load(mockHtml);
+
+      const pagination = scraper.extractPagination($);
+      expect(pagination.currentPage).toBe(1);
+    });
+
+    test('should keep default current page when pagination has no current element', () => {
+      const mockHtml = `
+        <div class="woocommerce-pagination">
+          <a class="page-numbers">2</a>
+          <a class="page-numbers">3</a>
+        </div>
+      `;
+      const cheerio = require('cheerio');
+      const $ = cheerio.load(mockHtml);
+
+      const pagination = scraper.extractPagination($);
+      expect(pagination.currentPage).toBe(1);
+      expect(pagination.totalPages).toBe(3);
     });
   });
 
@@ -403,6 +474,14 @@ describe('ArtveeScraper', () => {
 
       consoleSpy.mockRestore();
     }, 10000);
+
+    test('should use default retry context when none is provided', async () => {
+      const mockFn = jest.fn().mockResolvedValue('ok');
+      const result = await scraper._retryWithBackoff(mockFn);
+
+      expect(result).toBe('ok');
+      expect(mockFn).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('SafePath validation', () => {
@@ -511,6 +590,27 @@ describe('ArtveeScraper', () => {
 
       expect(result.skipped).toBe(true);
       expect(result.message).toBe('File already exists');
+    }, 10000);
+
+    test('should use default options when options are omitted', async () => {
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+      pipeline.mockResolvedValue();
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const result = await scraper.downloadImage('https://example.com/default.jpg', './downloads/default.jpg');
+      expect(result.success).toBe(true);
     }, 10000);
 
     test('should update progressBar when file is cached', async () => {
@@ -653,6 +753,57 @@ describe('ArtveeScraper', () => {
       expect(result.success).toBe(true);
     }, 10000);
 
+    test('should show resume indicator and resuming size text for resumed downloads', async () => {
+      const EventEmitter = require('events');
+      const cliProgress = require('cli-progress');
+
+      const existsMock = jest.fn()
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
+      fs.existsSync = existsMock;
+      fs.statSync.mockReturnValue({ size: 500 });
+
+      const mockBar = { start: jest.fn(), update: jest.fn(), stop: jest.fn() };
+      let capturedConfig = null;
+      jest.spyOn(cliProgress, 'SingleBar').mockImplementation((config) => {
+        capturedConfig = config;
+        return mockBar;
+      });
+
+      const stream = new EventEmitter();
+      stream.pipe = jest.fn().mockReturnThis();
+
+      axios.mockResolvedValue({
+        data: stream,
+        headers: {
+          'content-length': '500',
+          'content-range': 'bytes 500-999/1000',
+          'accept-ranges': 'bytes'
+        },
+        status: 206
+      });
+
+      pipeline.mockImplementation(async () => {
+        stream.emit('data', Buffer.alloc(500));
+      });
+
+      const result = await scraper.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/resume-indicator.jpg',
+        { resume: true, showProgress: true, maxRetries: 1 }
+      );
+
+      expect(result.resumed).toBe(true);
+      expect(capturedConfig.format).toContain('↻');
+      expect(mockBar.start).toHaveBeenCalledWith(
+        expect.any(Number),
+        500,
+        expect.objectContaining({ size: expect.stringContaining('(resuming)') })
+      );
+    }, 10000);
+
     test('should use progressBar when provided', async () => {
       fs.existsSync.mockReturnValue(false);
       fs.statSync.mockReturnValue({ size: 1000 });
@@ -784,6 +935,42 @@ describe('ArtveeScraper', () => {
       expect(scraper2.compressImage).toHaveBeenCalled();
     }, 10000);
 
+    test('should keep original size when compression result is unsuccessful', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1234 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1234' }
+      });
+
+      pipeline.mockResolvedValue();
+
+      const scraper2 = new ArtveeScraper();
+      scraper2.compressImage = jest.fn().mockResolvedValue({
+        success: false,
+        error: 'failed compression'
+      });
+
+      const result = await scraper2.downloadImage(
+        'https://example.com/image.jpg',
+        './downloads/image.jpg',
+        { compress: true, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.compressed).toBe(false);
+      expect(result.size).toBe(1234);
+    }, 10000);
+
     test('should handle download failure and cleanup partial marker', async () => {
       fs.existsSync.mockReturnValue(false);
       fs.unlinkSync = jest.fn();
@@ -832,6 +1019,100 @@ describe('ArtveeScraper', () => {
       );
 
       expect(fs.unlinkSync).toHaveBeenCalledWith('./downloads/image.jpg.partial');
+    }, 10000);
+
+    test('should use default internal options when _downloadImageInternal options are minimal', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' },
+        status: 200
+      });
+      pipeline.mockResolvedValue();
+
+      const result = await scraper._downloadImageInternal(
+        'https://example.com/internal.jpg',
+        './downloads/internal.jpg',
+        { showProgress: false, progressBar: null, compress: false, compressionOptions: {} }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.resumed).toBe(false);
+    }, 10000);
+
+    test('should treat content-range as resume even when status is not 206', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1500 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: {
+          'content-length': '500',
+          'content-range': 'bytes 500-999/1500',
+          'accept-ranges': 'bytes'
+        },
+        status: 200
+      });
+      pipeline.mockResolvedValue();
+
+      const result = await scraper._downloadImageInternal(
+        'https://example.com/range.jpg',
+        './downloads/range.jpg',
+        { showProgress: false, progressBar: null, compress: false, compressionOptions: {}, existingSize: 500, resume: true }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.resumed).toBeTruthy();
+    }, 10000);
+
+    test('should ignore malformed content-range and keep content-length total', async () => {
+      fs.existsSync.mockReturnValue(false);
+      fs.statSync.mockReturnValue({ size: 1000 });
+
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: {
+          'content-length': '1000',
+          'content-range': 'invalid-format'
+        },
+        status: 200
+      });
+      pipeline.mockResolvedValue();
+
+      const result = await scraper._downloadImageInternal(
+        'https://example.com/malformed-range.jpg',
+        './downloads/malformed-range.jpg',
+        { showProgress: false, progressBar: null, compress: false, compressionOptions: {}, existingSize: 0, resume: false }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.size).toBe(1000);
     }, 10000);
   });
 
@@ -1090,6 +1371,38 @@ describe('ArtveeScraper', () => {
       expect(result.savingsFormatted).toBe('5 MB');
       expect(result.savings).toBe(5242880);
     });
+
+    test('should handle unknown metadata format without applying conversion', async () => {
+      mockSharpTransform.metadata.mockResolvedValue({ format: 'tiff' });
+      fs.statSync = jest.fn()
+        .mockReturnValueOnce({ size: 8000 })
+        .mockReturnValueOnce({ size: 7900 });
+      fs.renameSync = jest.fn();
+
+      const compressionScraper = new ArtveeScraper();
+      const result = await compressionScraper.compressImage(
+        './input.tiff',
+        './output.tiff',
+        { quality: 70 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(mockSharpTransform.metadata).toHaveBeenCalled();
+      expect(mockSharpTransform.jpeg).not.toHaveBeenCalled();
+      expect(mockSharpTransform.png).not.toHaveBeenCalled();
+      expect(mockSharpTransform.webp).not.toHaveBeenCalled();
+    });
+
+    test('should return input path when outputPath is null and compression fails', async () => {
+      mockSharpTransform.toFile.mockRejectedValue(new Error('Transform failure'));
+      fs.statSync = jest.fn().mockReturnValueOnce({ size: 10000 });
+
+      const compressionScraper = new ArtveeScraper();
+      const result = await compressionScraper.compressImage('./input.jpg', null, { quality: 80 });
+
+      expect(result.success).toBe(false);
+      expect(result.path).toBe('./input.jpg');
+    });
   });
 
   describe('downloadArtwork', () => {
@@ -1133,6 +1446,43 @@ describe('ArtveeScraper', () => {
 
       expect(result.success).toBe(true);
       expect(result.path).toContain('Test_Artwork');
+    }, 10000);
+
+    test('should use defaults and fallback title when artwork title is missing', async () => {
+      const mockDetailsHtml = `
+        <html>
+          <body>
+            <a href="https://example.com/default-download.jpg" class="download-link">Download</a>
+          </body>
+        </html>
+      `;
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, callback) => {
+          if (event === 'finish') callback();
+          return mockStream;
+        })
+      };
+
+      axios.get.mockResolvedValue({ data: mockDetailsHtml });
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '900' }
+      });
+      pipeline.mockResolvedValue();
+      fs.statSync.mockReturnValue({ size: 900 });
+      fs.existsSync.mockReturnValue(false);
+
+      const result = await scraper.downloadArtwork(
+        {
+          imageUrl: 'https://example.com/title-missing.jpg',
+          url: 'https://artvee.com/dl/title-missing'
+        },
+        './downloads'
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.path).toContain('artwork');
     }, 10000);
 
     test('should download high quality with premium account', async () => {
@@ -1270,6 +1620,38 @@ describe('ArtveeScraper', () => {
       );
     }, 10000);
 
+    test('should fallback to original image for standard quality when main image is missing', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [],
+        mainImage: null
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        path: './downloads/Standard_Original.jpg',
+        size: 800,
+        skipped: false
+      });
+
+      const artwork = {
+        title: 'Standard Original',
+        imageUrl: 'https://example.com/original-standard.jpg',
+        url: 'https://artvee.com/dl/standard-original'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'standard', includeDetails: false, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(scraper.downloadImage).toHaveBeenCalledWith(
+        'https://example.com/original-standard.jpg',
+        expect.any(String),
+        expect.any(Object)
+      );
+    }, 10000);
+
     test('should use premium high quality link when available', async () => {
       const premiumScraper = new ArtveeScraper({ authCookie: 'session=abc' });
       premiumScraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
@@ -1301,6 +1683,42 @@ describe('ArtveeScraper', () => {
       expect(result.success).toBe(true);
       expect(premiumScraper.downloadImage).toHaveBeenCalledWith(
         'https://example.com/hd.jpg',
+        expect.any(String),
+        expect.any(Object)
+      );
+    }, 10000);
+
+    test('should use last premium link when no high or hd text exists', async () => {
+      const premiumScraper = new ArtveeScraper({ authCookie: 'session=abc' });
+      premiumScraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [
+          { text: 'Standard Download', url: 'https://example.com/standard.jpg' },
+          { text: 'XL Download', url: 'https://example.com/xl.jpg' }
+        ],
+        mainImage: 'https://example.com/main.jpg'
+      });
+      premiumScraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        path: './downloads/Premium_Last.jpg',
+        size: 2400,
+        skipped: false
+      });
+
+      const artwork = {
+        title: 'Premium Last',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/premium-last'
+      };
+
+      const result = await premiumScraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'high', includeDetails: false, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(premiumScraper.downloadImage).toHaveBeenCalledWith(
+        'https://example.com/xl.jpg',
         expect.any(String),
         expect.any(Object)
       );
@@ -1338,6 +1756,38 @@ describe('ArtveeScraper', () => {
       );
     }, 10000);
 
+    test('should fallback to original image for high quality when main image is missing', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [],
+        mainImage: null
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        path: './downloads/High_Original.jpg',
+        size: 1600,
+        skipped: false
+      });
+
+      const artwork = {
+        title: 'High Original',
+        imageUrl: 'https://example.com/original-high.jpg',
+        url: 'https://artvee.com/dl/high-original'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'high', includeDetails: false, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(scraper.downloadImage).toHaveBeenCalledWith(
+        'https://example.com/original-high.jpg',
+        expect.any(String),
+        expect.any(Object)
+      );
+    }, 10000);
+
     test('should persist metadata when includeDetails is true and download succeeds', async () => {
       scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
         downloadLinks: [{ text: 'Download', url: 'https://example.com/full.jpg' }],
@@ -1367,6 +1817,94 @@ describe('ArtveeScraper', () => {
       expect(result.success).toBe(true);
       expect(fs.writeFileSync).toHaveBeenCalled();
       expect(scraper._pendingMetadata).toBeUndefined();
+    }, 10000);
+
+    test('should not write metadata when download is skipped', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [{ text: 'Download', url: 'https://example.com/full.jpg' }],
+        mainImage: 'https://example.com/main.jpg'
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        skipped: true,
+        path: './downloads/Skipped_Metadata.jpg',
+        size: 1000
+      });
+      fs.writeFileSync = jest.fn();
+
+      const artwork = {
+        title: 'Skipped Metadata',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/skipped-metadata'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'standard', includeDetails: true, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.skipped).toBe(true);
+      expect(fs.writeFileSync).not.toHaveBeenCalled();
+    }, 10000);
+
+    test('should handle unrecognized quality while includeDetails is true', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [{ text: 'Download', url: 'https://example.com/full.jpg' }],
+        mainImage: 'https://example.com/main.jpg'
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        skipped: false,
+        path: './downloads/Unknown_Quality.jpg',
+        size: 1100
+      });
+      fs.writeFileSync = jest.fn();
+
+      const artwork = {
+        title: 'Unknown Quality',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/unknown-quality'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'ultra', includeDetails: true, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(scraper.downloadImage).toHaveBeenCalled();
+      expect(fs.writeFileSync).toHaveBeenCalled();
+    }, 10000);
+
+    test('should use default downloadDir and options when only artwork is provided', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [{ text: 'Download', url: 'https://example.com/default-only.jpg' }],
+        mainImage: null
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        skipped: false,
+        path: './downloads/Default_Params.jpg',
+        size: 1000
+      });
+
+      const artwork = {
+        title: 'Default Params',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/default-params'
+      };
+
+      const result = await scraper.downloadArtwork(artwork);
+
+      expect(result.success).toBe(true);
+      expect(scraper.downloadImage).toHaveBeenCalledWith(
+        'https://example.com/default-only.jpg',
+        expect.stringContaining('downloads'),
+        expect.any(Object)
+      );
     }, 10000);
 
     test('should handle missing image URL', async () => {
@@ -1479,6 +2017,58 @@ describe('ArtveeScraper', () => {
       expect(result.failed).toBe(0);
       expect(result.total).toBe(0);
     });
+
+    test('should use default options when options are omitted', async () => {
+      const mockStream = {
+        pipe: jest.fn().mockReturnThis(),
+        on: jest.fn((event, cb) => {
+          if (event === 'finish') cb();
+          return mockStream;
+        })
+      };
+
+      axios.mockResolvedValue({
+        data: mockStream,
+        headers: { 'content-length': '1000' }
+      });
+
+      pipeline.mockResolvedValue();
+      fs.existsSync.mockReturnValue(false);
+
+      const result = await scraper.downloadMultipleArtworks([
+        { title: 'Default A', imageUrl: 'https://example.com/default-a.jpg' }
+      ], './downloads');
+
+      expect(result.total).toBe(1);
+      expect(result.successful).toBe(1);
+    }, 15000);
+
+    test('should use default downloadDir and options when only artworks are provided', async () => {
+      const cliProgress = require('cli-progress');
+      const mockBar = { update: jest.fn(), stop: jest.fn() };
+      const mockMultibar = {
+        create: jest.fn().mockReturnValue(mockBar),
+        stop: jest.fn()
+      };
+      jest.spyOn(cliProgress, 'MultiBar').mockImplementation(() => mockMultibar);
+
+      scraper.downloadArtwork = jest.fn().mockResolvedValue({
+        success: true,
+        skipped: false,
+        size: 1024
+      });
+
+      const artworks = [{ title: 'Only Required', imageUrl: 'https://example.com/only.jpg' }];
+      const result = await scraper.downloadMultipleArtworks(artworks);
+
+      expect(result.total).toBe(1);
+      expect(result.successful).toBe(1);
+      expect(scraper.downloadArtwork).toHaveBeenCalledWith(
+        artworks[0],
+        './downloads',
+        expect.any(Object)
+      );
+    }, 15000);
 
     test('should handle large batch with concurrency limit', async () => {
       const mockStream = {
@@ -1601,6 +2191,60 @@ describe('ArtveeScraper', () => {
         expect(capturedMultiBarConfig.formatValue(88.9, {}, 'percentage')).toBe(' 88');
         expect(capturedMultiBarConfig.formatValue('done', {}, 'value')).toBe('done');
       }
+    }, 15000);
+
+    test('should fallback filename to artwork when title is missing', async () => {
+      const cliProgress = require('cli-progress');
+      const createdPayloads = [];
+      const mockMultibar = {
+        create: jest.fn((total, current, payload) => {
+          createdPayloads.push(payload);
+          return {
+            update: jest.fn(),
+            stop: jest.fn()
+          };
+        }),
+        stop: jest.fn()
+      };
+
+      jest.spyOn(cliProgress, 'MultiBar').mockImplementation(() => mockMultibar);
+      scraper.downloadArtwork = jest.fn().mockResolvedValue({
+        success: true,
+        skipped: false,
+        size: 1024
+      });
+
+      await scraper.downloadMultipleArtworks(
+        [{ imageUrl: 'https://example.com/no-title.jpg' }],
+        './downloads',
+        { showProgress: true, maxRetries: 1 }
+      );
+
+      expect(createdPayloads[0].filename.trim()).toBe('artwork');
+    }, 15000);
+
+    test('should show cached label when successful result is skipped', async () => {
+      const cliProgress = require('cli-progress');
+      const mockBar = { update: jest.fn(), stop: jest.fn() };
+      const mockMultibar = {
+        create: jest.fn().mockReturnValue(mockBar),
+        stop: jest.fn()
+      };
+
+      jest.spyOn(cliProgress, 'MultiBar').mockImplementation(() => mockMultibar);
+      scraper.downloadArtwork = jest.fn().mockResolvedValue({
+        success: true,
+        skipped: true,
+        size: 1048576
+      });
+
+      await scraper.downloadMultipleArtworks(
+        [{ title: 'Cached Art', imageUrl: 'https://example.com/cached.jpg' }],
+        './downloads',
+        { showProgress: true, maxRetries: 1 }
+      );
+
+      expect(mockBar.update).toHaveBeenCalledWith(100, { size: '1.00 MB (cached)' });
     }, 15000);
 
     test('should handle download failures and update progress bars', async () => {

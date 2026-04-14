@@ -150,7 +150,7 @@ class ArtveeScraper {
     }
 
     const queryString = params.toString();
-    return queryString ? `${url}?${queryString}` : url;
+    return `${url}?${queryString}`;
   }
 
   /**
