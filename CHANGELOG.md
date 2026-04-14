@@ -7,11 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.3] - 2026-04-13
 
-### Changed
-- **License changed from ISC to CC-BY-SA-4.0** (Creative Commons Attribution-ShareAlike 4.0 International)
-
-## [Unreleased]
-
 ### Added
 - Progress bars for large downloads with `cli-progress` library
 - Multi-bar progress tracking for batch downloads with perfect alignment
@@ -55,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `path.basename()` safeguard for additional protection
 - Added `safePath()` method with path.resolve() validation
 - Improved validation of user-provided artwork titles before filesystem operations
+
+## [Unreleased]
 
 ## [1.0.2] - 2026-04-13
 
