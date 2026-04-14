@@ -5,6 +5,10 @@
   "main": "scraper.js",
   "scripts": {
     "start": "node scraper.js",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch",
+    "test:ci": "jest --coverage --ci --reporters=default --reporters=jest-junit",
+    "coverage": "jest --coverage && cat ./coverage/lcov.info | coveralls-next",
     "test-download": "node examples/download.js",
     "test-progress": "node examples/progress-bars.js",
     "test-compression": "node examples/compression.js",
@@ -19,6 +23,28 @@
     "release:patch": "npm version patch && npm publish",
     "release:minor": "npm version minor && npm publish",
     "release:major": "npm version major && npm publish"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "scraper.js",
+      "!node_modules/**",
+      "!coverage/**",
+      "!examples/**"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.js",
+      "**/?(*.)+(spec|test).js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 10,
+        "functions": 10,
+        "lines": 10,
+        "statements": 10
+      }
+    }
   },
   "repository": {
     "type": "git",
@@ -49,5 +75,9 @@
     "cli-progress": "^3.12.0",
     "image-size": "^2.0.2",
     "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "coveralls-next": "^6.0.1",
+    "jest": "^30.3.0"
   }
 }

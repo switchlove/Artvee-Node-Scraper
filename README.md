@@ -4,6 +4,7 @@
 [![Node Current](https://img.shields.io/node/v/artvee-node-scraper?style=for-the-badge&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
 [![Node LTS](https://img.shields.io/node/v-lts/artvee-node-scraper?style=for-the-badge&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
 [![NPM License](https://img.shields.io/npm/l/artvee-node-scraper?style=for-the-badge&logo=creativecommons&logoColor=%23ED592F)](LICENSE)
+[![Coverage Status](https://img.shields.io/coverallsCoverage/github/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=coveralls)](https://coveralls.io/github/switchlove/Artvee-Node-Scraper?branch=main)
 
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/t/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper)
 [![GitHub Issues](https://img.shields.io/github/issues/switchlove/Artvee-Node-Scraper?style=for-the-badge&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/issues)
