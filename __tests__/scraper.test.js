@@ -1238,6 +1238,137 @@ describe('ArtveeScraper', () => {
       expect(fs.writeFileSync).toHaveBeenCalled();
     }, 10000);
 
+    test('should fallback to main image for standard quality when no links exist', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [],
+        mainImage: 'https://example.com/main-standard.jpg'
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        path: './downloads/Fallback_Standard.jpg',
+        size: 1200,
+        skipped: false
+      });
+
+      const artwork = {
+        title: 'Fallback Standard',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/fallback-standard'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'standard', includeDetails: false, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(scraper.downloadImage).toHaveBeenCalledWith(
+        'https://example.com/main-standard.jpg',
+        expect.any(String),
+        expect.any(Object)
+      );
+    }, 10000);
+
+    test('should use premium high quality link when available', async () => {
+      const premiumScraper = new ArtveeScraper({ authCookie: 'session=abc' });
+      premiumScraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [
+          { text: 'Standard Download', url: 'https://example.com/standard.jpg' },
+          { text: 'HD Download', url: 'https://example.com/hd.jpg' }
+        ],
+        mainImage: 'https://example.com/main.jpg'
+      });
+      premiumScraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        path: './downloads/Premium_High.jpg',
+        size: 2400,
+        skipped: false
+      });
+
+      const artwork = {
+        title: 'Premium High',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/premium-high'
+      };
+
+      const result = await premiumScraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'high', includeDetails: false, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(premiumScraper.downloadImage).toHaveBeenCalledWith(
+        'https://example.com/hd.jpg',
+        expect.any(String),
+        expect.any(Object)
+      );
+    }, 10000);
+
+    test('should fallback to main image for high quality when no links exist', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [],
+        mainImage: 'https://example.com/main-high-fallback.jpg'
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        path: './downloads/High_Fallback.jpg',
+        size: 1600,
+        skipped: false
+      });
+
+      const artwork = {
+        title: 'High Fallback',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/high-fallback'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'high', includeDetails: false, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(scraper.downloadImage).toHaveBeenCalledWith(
+        'https://example.com/main-high-fallback.jpg',
+        expect.any(String),
+        expect.any(Object)
+      );
+    }, 10000);
+
+    test('should persist metadata when includeDetails is true and download succeeds', async () => {
+      scraper.scrapeArtworkDetails = jest.fn().mockResolvedValue({
+        downloadLinks: [{ text: 'Download', url: 'https://example.com/full.jpg' }],
+        mainImage: 'https://example.com/main.jpg',
+        artist: 'Artist'
+      });
+      scraper.downloadImage = jest.fn().mockResolvedValue({
+        success: true,
+        path: './downloads/Meta_Artwork.jpg',
+        size: 2200,
+        skipped: false
+      });
+      fs.writeFileSync = jest.fn();
+
+      const artwork = {
+        title: 'Meta Artwork',
+        imageUrl: 'https://example.com/thumb.jpg',
+        url: 'https://artvee.com/dl/meta-artwork'
+      };
+
+      const result = await scraper.downloadArtwork(
+        artwork,
+        './downloads',
+        { quality: 'standard', includeDetails: true, maxRetries: 1 }
+      );
+
+      expect(result.success).toBe(true);
+      expect(fs.writeFileSync).toHaveBeenCalled();
+      expect(scraper._pendingMetadata).toBeUndefined();
+    }, 10000);
+
     test('should handle missing image URL', async () => {
       const artwork = {
         title: 'Test Artwork'
@@ -1439,6 +1570,7 @@ describe('ArtveeScraper', () => {
       fs.statSync.mockReturnValue({ size: 1000 });
 
       const cliProgress = require('cli-progress');
+      let capturedMultiBarConfig = null;
       const mockMultibar = {
         create: jest.fn().mockReturnValue({
           update: jest.fn(),
@@ -1447,7 +1579,10 @@ describe('ArtveeScraper', () => {
         stop: jest.fn()
       };
 
-      jest.spyOn(cliProgress, 'MultiBar').mockImplementation(() => mockMultibar);
+      jest.spyOn(cliProgress, 'MultiBar').mockImplementation((config) => {
+        capturedMultiBarConfig = config;
+        return mockMultibar;
+      });
 
       const artworks = [
         { title: 'Art 1', imageUrl: 'https://example.com/1.jpg' },
@@ -1462,6 +1597,10 @@ describe('ArtveeScraper', () => {
 
       expect(mockMultibar.create).toHaveBeenCalled();
       expect(mockMultibar.stop).toHaveBeenCalled();
+      if (capturedMultiBarConfig && capturedMultiBarConfig.formatValue) {
+        expect(capturedMultiBarConfig.formatValue(88.9, {}, 'percentage')).toBe(' 88');
+        expect(capturedMultiBarConfig.formatValue('done', {}, 'value')).toBe('done');
+      }
     }, 15000);
 
     test('should handle download failures and update progress bars', async () => {
@@ -1549,5 +1688,23 @@ describe('ArtveeScraper', () => {
       expect(result.total).toBe(6);
       expect(result.successful).toBe(6);
     }, 15000);
+  });
+
+  describe('compressImage no-sharp guard', () => {
+    test('should throw when sharp is unavailable at module load', async () => {
+      jest.resetModules();
+      jest.doMock('sharp', () => {
+        throw new Error('sharp not installed');
+      });
+
+      const IsolatedScraper = require('../scraper.js');
+      const isolatedInstance = new IsolatedScraper();
+
+      await expect(
+        isolatedInstance.compressImage('./input.jpg', './output.jpg')
+      ).rejects.toThrow("Image compression requires the 'sharp' package");
+
+      jest.dontMock('sharp');
+    });
   });
 });

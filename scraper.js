@@ -455,7 +455,7 @@ class ArtveeScraper {
       }
 
       // Create a single progress bar if enabled and not provided
-      let bar = progressBar;
+      let bar = null;
       let shouldStopBar = false;
       
       if (showProgress && !bar && totalSize) {
