@@ -31,8 +31,8 @@ Feature requests are welcome! Please:
 ## Development Setup
 
 ```bash
-git clone https://github.com/yourusername/artvee-scraper.git
-cd artvee-scraper
+git clone https://github.com/switchlove/Artvee-Node-Scraper.git
+cd Artvee-Node-Scraper
 npm install
 ```
 

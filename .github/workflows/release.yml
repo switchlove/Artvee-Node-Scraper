@@ -52,7 +52,7 @@ jobs:
           ### Installation
           
           ```bash
-          npm install artvee-scraper@${{ steps.get_version.outputs.VERSION }}
+          npm install artvee-node-scraper@${{ steps.get_version.outputs.VERSION }}
           ```
         draft: false
         prerelease: false

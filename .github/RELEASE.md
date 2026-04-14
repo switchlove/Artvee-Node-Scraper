@@ -82,10 +82,10 @@ npm run release:patch   # or release:minor, release:major
 
 ```bash
 # Check if package exists
-npm view artvee-scraper
+npm view artvee-node-scraper
 
 # Install from npm to test
-npm install artvee-scraper
+npm install artvee-node-scraper
 ```
 
 ## Creating GitHub Releases
@@ -147,7 +147,7 @@ npm publish
 
 Update version badge in README.md:
 ```markdown
-[![npm version](https://img.shields.io/npm/v/artvee-scraper.svg)](https://www.npmjs.com/package/artvee-scraper)
+[![npm version](https://img.shields.io/npm/v/artvee-node-scraper.svg)](https://www.npmjs.com/package/artvee-node-scraper)
 ```
 
 ### Announce Release
@@ -162,10 +162,10 @@ Update version badge in README.md:
 
 ```bash
 # Unpublish a specific version
-npm unpublish artvee-scraper@1.0.0
+npm unpublish artvee-node-scraper@1.0.0
 
 # Unpublish entire package (Use with extreme caution!)
-npm unpublish artvee-scraper --force
+npm unpublish artvee-node-scraper --force
 ```
 
 **Better alternative**: Publish a patched version if there's an issue.
@@ -175,23 +175,23 @@ npm unpublish artvee-scraper --force
 ### Make Package Public
 
 ```bash
-npm access public artvee-scraper
+npm access public artvee-node-scraper
 ```
 
 ### Add Collaborators
 
 ```bash
-npm owner add <username> artvee-scraper
+npm owner add <username> artvee-node-scraper
 ```
 
 ## Deprecating Old Versions
 
 ```bash
 # Deprecate a specific version
-npm deprecate artvee-scraper@1.0.0 "Please upgrade to 1.0.1 - fixes critical bug"
+npm deprecate artvee-node-scraper@1.0.0 "Please upgrade to 1.0.1 - fixes critical bug"
 
 # Deprecate all 1.x versions
-npm deprecate artvee-scraper@"1.x" "Please upgrade to 2.0.0"
+npm deprecate artvee-node-scraper@"1.x" "Please upgrade to 2.0.0"
 ```
 
 ## Beta/Alpha Releases
@@ -206,7 +206,7 @@ npm version 1.1.0-beta.0
 npm publish --tag beta
 
 # Users install with:
-# npm install artvee-scraper@beta
+# npm install artvee-node-scraper@beta
 ```
 
 ## Common Issues
@@ -214,7 +214,7 @@ npm publish --tag beta
 ### "You do not have permission to publish"
 
 - Check you're logged in: `npm whoami`
-- Verify package name isn't taken: `npm view artvee-scraper`
+- Verify package name isn't taken: `npm view artvee-node-scraper`
 - Check organization scope if using @org/package
 
 ### "Package name too similar to existing package"
@@ -235,10 +235,10 @@ npm pack --dry-run
 
 # Check package size
 npm pack
-tar -tzf artvee-scraper-1.0.0.tgz
+tar -tzf artvee-node-scraper-1.0.3.tgz
 
 # View package info
-npm view artvee-scraper
+npm view artvee-node-scraper
 
 # Check outdated dependencies
 npm outdated
