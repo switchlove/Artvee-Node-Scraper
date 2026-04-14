@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { pipeline } = require('stream/promises');
 const cliProgress = require('cli-progress');
 
@@ -811,7 +812,9 @@ class ArtveeScraper {
 
         // Calculate exponential backoff: baseDelay * 2^attempt
         const delay = baseDelay * Math.pow(2, attempt);
-        const jitter = Math.random() * 0.3 * delay; // Add 0-30% jitter
+        // Use crypto for random jitter to avoid security warnings
+        const randomValue = crypto.randomBytes(4).readUInt32BE(0) / 0xFFFFFFFF;
+        const jitter = randomValue * 0.3 * delay; // Add 0-30% jitter
         const totalDelay = delay + jitter;
 
         if (context.onRetry) {
