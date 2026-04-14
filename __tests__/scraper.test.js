@@ -690,27 +690,43 @@ describe('ArtveeScraper', () => {
     }, 10000);
 
     test('should create CLI progress bar when showProgress is true', async () => {
+      const EventEmitter = require('events');
+      
       fs.existsSync.mockReturnValue(false);
       fs.statSync.mockReturnValue({ size: 1000 });
 
-      const mockStream = {
-        pipe: jest.fn().mockReturnThis(),
-        on: jest.fn((event, callback) => {
-          if (event === 'finish') callback();
-          if (event === 'data') {
-            callback(Buffer.alloc(250));
-            callback(Buffer.alloc(250));
-          }
-          return mockStream;
-        })
+      const mockBar = {
+        start: jest.fn(),
+        update: jest.fn(),
+        stop: jest.fn()
       };
+
+      let capturedConfig = null;
+      const mockSingleBar = jest.fn((config) => {
+        capturedConfig = config;
+        return mockBar;
+      });
+
+      const cliProgress = require('cli-progress');
+      jest.spyOn(cliProgress, 'SingleBar').mockImplementation(mockSingleBar);
+
+      // Use EventEmitter for a more realistic stream
+      const mockStream = new EventEmitter();
+      mockStream.pipe = jest.fn().mockReturnThis();
 
       axios.mockResolvedValue({
         data: mockStream,
         headers: { 'content-length': '1000' }
       });
 
-      pipeline.mockResolvedValue();
+      // Make pipeline emit data events then complete
+      pipeline.mockImplementation(async () => {
+        await new Promise(resolve => setImmediate(resolve));
+        mockStream.emit('data', Buffer.alloc(300));
+        mockStream.emit('data', Buffer.alloc(400));
+        mockStream.emit('data', Buffer.alloc(300));
+        await new Promise(resolve => setImmediate(resolve));
+      });
 
       const result = await scraper.downloadImage(
         'https://example.com/image.jpg',
@@ -719,6 +735,19 @@ describe('ArtveeScraper', () => {
       );
 
       expect(result.path).toBe('./downloads/image.jpg');
+      expect(mockSingleBar).toHaveBeenCalled();
+      expect(mockBar.start).toHaveBeenCalled();
+      expect(mockBar.stop).toHaveBeenCalled();
+      expect(mockBar.update).toHaveBeenCalled();
+
+      // Test the formatValue callback
+      if (capturedConfig && capturedConfig.formatValue) {
+        const formattedPercentage = capturedConfig.formatValue(45.7, {}, 'percentage');
+        expect(formattedPercentage).toBe(' 45');
+        
+        const formattedOther = capturedConfig.formatValue(123, {}, 'value');
+        expect(formattedOther).toBe(123);
+      }
     }, 10000);
 
     test('should handle compression during download', async () => {
