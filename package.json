@@ -17,7 +17,7 @@
     "test-retry": "node examples/test-retry.js",
     "test-resume": "node examples/test-resume.js",
     "demo-retry-resume": "node examples/retry-resume.js",
-    "prepublishOnly": "npm run test-scrape",
+    "prepublishOnly": "npm test && npm run test-scrape",
     "version": "npm run update-changelog && git add CHANGELOG.md",
     "postversion": "git push && git push --tags",
     "update-changelog": "echo 'Remember to update CHANGELOG.md manually'",

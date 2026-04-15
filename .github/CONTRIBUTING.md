@@ -77,6 +77,30 @@ npm run test-download
 - Maintain or improve code coverage (currently 100%)
 - Tests run automatically in CI on all PRs
 
+### Static Analysis
+
+The project uses automated static analysis for security and code quality:
+
+- **njsscan** - Node.js security scanner runs on every push, PR, and weekly schedule
+- **CodeQL** - GitHub Code Scanning Default Setup analyzes code for vulnerabilities
+- **Node.js syntax checker** - `node --check` validates syntax in CI
+
+All medium and higher severity issues are fixed before release. View security findings at:
+- https://github.com/switchlove/Artvee-Node-Scraper/security/code-scanning
+
+### Dynamic Analysis
+
+The project includes dynamic testing with assertions:
+
+- **Property-based fuzzing** - fast-check runs 300-500 randomized test cases per property
+- **Unit tests** - 114 Jest tests with extensive `expect()` assertions
+- **Integration tests** - Real-world usage validation via example scripts
+
+Run fuzzing tests locally:
+```bash
+npm run fuzz
+```
+
 ## Respect Rate Limits
 
 When contributing features that make requests to Artvee:
