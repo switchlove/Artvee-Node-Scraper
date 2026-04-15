@@ -9,16 +9,24 @@ describe('Property-based fuzz tests', () => {
   });
 
   test('buildUrl creates valid Artvee URLs across random filter inputs', () => {
+    const categoryArb = fc
+      .array(fc.constantFrom('a', 'b', 'c', 'd', 'e', 'f', '-', '1', '2', '3'), {
+        minLength: 1,
+        maxLength: 24
+      })
+      .map((chars) => chars.join(''));
+
+    const centuryArb = fc
+      .array(fc.constantFrom('1', '2', '3', '4', '5', '-', 't', 'h', 'c', 'e', 'n', 'u', 'r', 'y'), {
+        minLength: 1,
+        maxLength: 20
+      })
+      .map((chars) => chars.join(''));
+
     fc.assert(
       fc.property(
-        fc.stringOf(fc.constantFrom('a', 'b', 'c', 'd', 'e', 'f', '-', '1', '2', '3'), {
-          minLength: 1,
-          maxLength: 24
-        }),
-        fc.option(fc.stringOf(fc.constantFrom('1', '2', '3', '4', '5', '-', 't', 'h', 'c', 'e', 'n', 'u', 'r', 'y'), {
-          minLength: 1,
-          maxLength: 20
-        }), { nil: null }),
+        categoryArb,
+        fc.option(centuryArb, { nil: null }),
         fc.option(fc.constantFrom('landscape', 'portrait', 'square', 'panorama'), { nil: null }),
         fc.integer({ min: 1, max: 200 }),
         fc.integer({ min: 1, max: 25 }),
