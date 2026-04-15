@@ -1,12 +1,9 @@
 name: CodeQL
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
-  schedule:
-    - cron: '24 4 * * 2'
+  # Run manually only. If GitHub Code Scanning Default Setup is enabled,
+  # advanced CodeQL workflows cannot upload SARIF and will fail.
+  workflow_dispatch:
 
 permissions:
   contents: read
