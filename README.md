@@ -108,6 +108,7 @@ Auto-retry with exponential backoff. Resume interrupted downloads. See [Download
 - [Governance Model](GOVERNANCE.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security Policy and Requirements](SECURITY.md)
+- [Security Assurance Case](ASSURANCE_CASE.md)
 - [Architecture Overview](ARCHITECTURE.md)
 - [Roadmap (Future Releases)](CHANGELOG.md#future-releases)
 - [Maintenance and Upgrade Policy](UPGRADE.md)
