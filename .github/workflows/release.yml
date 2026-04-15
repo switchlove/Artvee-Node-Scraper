@@ -7,6 +7,10 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   release:
@@ -14,14 +18,14 @@ jobs:
     
     permissions:
       contents: write
-      packages: write
+      id-token: write
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
         node-version: '24.x'
         registry-url: 'https://registry.npmjs.org'
@@ -31,19 +35,52 @@ jobs:
 
     - name: Run tests
       run: npm run test-scrape
-      continue-on-error: true
 
     - name: Get version from tag
       id: get_version
+      if: startsWith(github.ref, 'refs/tags/v')
       run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
+    - name: Install cosign
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+
+    - name: Build release artifact
+      id: pack
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        mkdir -p release-artifacts
+        PACK_JSON=$(npm pack --json --pack-destination ./release-artifacts)
+        PKG_FILE=$(node -e 'const data = JSON.parse(process.argv[1]); console.log(data[0].filename);' "$PACK_JSON")
+        echo "package_file=$PKG_FILE" >> $GITHUB_OUTPUT
+
+    - name: Generate checksums
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        cd release-artifacts
+        sha256sum "${{ steps.pack.outputs.package_file }}" > SHA256SUMS
+
+    - name: Sign release artifacts (keyless)
+      if: startsWith(github.ref, 'refs/tags/v')
+      run: |
+        cosign sign-blob --yes \
+          --output-signature "release-artifacts/${{ steps.pack.outputs.package_file }}.sig" \
+          --output-certificate "release-artifacts/${{ steps.pack.outputs.package_file }}.pem" \
+          "release-artifacts/${{ steps.pack.outputs.package_file }}"
+
+        cosign sign-blob --yes \
+          --output-signature "release-artifacts/SHA256SUMS.sig" \
+          --output-certificate "release-artifacts/SHA256SUMS.pem" \
+          "release-artifacts/SHA256SUMS"
+
     - name: Create GitHub Release
-      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/v')
+      uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        name: Release ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
         body: |
           ## Changes in this Release
           
@@ -54,11 +91,18 @@ jobs:
           ```bash
           npm install artvee-node-scraper@${{ steps.get_version.outputs.VERSION }}
           ```
+        files: |
+          release-artifacts/${{ steps.pack.outputs.package_file }}
+          release-artifacts/SHA256SUMS
+          release-artifacts/${{ steps.pack.outputs.package_file }}.sig
+          release-artifacts/${{ steps.pack.outputs.package_file }}.pem
+          release-artifacts/SHA256SUMS.sig
+          release-artifacts/SHA256SUMS.pem
         draft: false
         prerelease: false
 
-    - name: Publish to npm (manual trigger only)
-      if: github.event_name == 'workflow_dispatch'
+    - name: Publish to npm
+      if: startsWith(github.ref, 'refs/tags/v')
       run: npm publish
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
