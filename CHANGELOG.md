@@ -57,7 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enforced coding standards with ESLint (`eslint:recommended`) in CI (`npm run lint`)
 - Published explicit coding standards and local lint commands in `.github/CONTRIBUTING.md`
 - Added regression test tracking policy for bug-fix pull requests
-- Added maintenance and upgrade policy in `UPGRADE.md`
+- Added maintenance and upgrade policy in `.github/docs/UPGRADE.md`
 
 ### Changed
 - License changed from CC-BY-SA-4.0 to MIT to use an OSI-approved software license.

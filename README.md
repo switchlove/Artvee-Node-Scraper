@@ -1,16 +1,14 @@
 # Artvee Node Scraper
 
-[![NPM Version](https://img.shields.io/npm/v/artvee-node-scraper?style=flat-square&logo=npm&logoColor=%23CB3837)](https://www.npmjs.com/package/artvee-node-scraper)
-[![Node Current](https://img.shields.io/node/v/artvee-node-scraper?style=flat-square&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
-[![Node LTS](https://img.shields.io/node/v-lts/artvee-node-scraper?style=flat-square&logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
-[![NPM License](https://img.shields.io/npm/l/artvee-node-scraper?style=flat-square&logo=creativecommons&logoColor=%23ED592F)](LICENSE)
+[![NPM Version](https://img.shields.io/npm/v/artvee-node-scraper?logo=npm&logoColor=%23CB3837)](https://www.npmjs.com/package/artvee-node-scraper)
+[![Node Current](https://img.shields.io/node/v/artvee-node-scraper?logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
+[![Node LTS](https://img.shields.io/node/v-lts/artvee-node-scraper?logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
+[![NPM License](https://img.shields.io/npm/l/artvee-node-scraper?logo=creativecommons&logoColor=%23ED592F)](LICENSE)
 
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/t/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper)
-[![GitHub Issues](https://img.shields.io/github/issues/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/issues)
-[![GitHub Pull Requests](https://img.shields.io/github/issues-pr/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/pulls)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/actions/workflows/ci.yml)
-[![Coverage Status](https://img.shields.io/coverallsCoverage/github/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://coveralls.io/github/switchlove/Artvee-Node-Scraper?branch=main)
-
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&logo=github&logoColor=%23181717)](https://github.com/theoephraim/node-google-spreadsheet/actions/workflows/ci.yml)
+[![Coverage Status](https://img.shields.io/coverallsCoverage/github/switchlove/Artvee-Node-Scraper?logo=github&logoColor=%23181717)](https://coveralls.io/github/switchlove/Artvee-Node-Scraper?branch=main)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/switchlove/Artvee-Node-Scraper/badge)](https://scorecard.dev/viewer/?uri=github.com/switchlove/Artvee-Node-Scraper)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12544/badge)](https://www.bestpractices.dev/projects/12544)
 
 A powerful Node.js scraper for [Artvee.com](https://artvee.com/) - download and organize high-quality public domain artwork with advanced filtering, progress tracking, and compression.
 
@@ -105,13 +103,13 @@ Auto-retry with exponential backoff. Resume interrupted downloads. See [Download
 
 - [Contributing Guide](.github/CONTRIBUTING.md)
 - [Developer Certificate of Origin (DCO)](https://developercertificate.org/)
-- [Governance Model](GOVERNANCE.md)
+- [Governance Model](.github/docs/GOVERNANCE.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security Policy and Requirements](SECURITY.md)
-- [Security Assurance Case](ASSURANCE_CASE.md)
-- [Architecture Overview](ARCHITECTURE.md)
+- [Security Assurance Case](.github/docs/ASSURANCE_CASE.md)
+- [Architecture Overview](.github/docs/ARCHITECTURE.md)
 - [Roadmap (Future Releases)](CHANGELOG.md#future-releases)
-- [Maintenance and Upgrade Policy](UPGRADE.md)
+- [Maintenance and Upgrade Policy](.github/docs/UPGRADE.md)
 - [Release Guide and Signature Verification](.github/RELEASE.md)
 
 ## Achievements
