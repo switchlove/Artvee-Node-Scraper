@@ -35,7 +35,6 @@ jobs:
 
     - name: Run tests
       run: npm run test-scrape
-      continue-on-error: true
 
     - name: Get version from tag
       id: get_version
