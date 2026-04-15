@@ -59,28 +59,33 @@ npm version major --sign-git-tag
 This automatically:
 - Updates package.json and package-lock.json
 - Creates a git commit
-- Creates a cryptographically signed git tag (when GPG is configured locally)
+- Creates a cryptographically signed git tag (using your configured Git signing format)
 
 ### Configure Git Tag Signing
 
-Before creating release tags, configure a signing key:
+The project supports signed tags for important releases. On this repository, the documented verification path uses **SSH-signed git tags** with the allowed signers file committed at `.github/allowed_signers`.
+
+Before creating release tags, configure Git for SSH signing:
 
 ```bash
-# Generate a signing key if needed
-gpg --full-generate-key
+# Derive or create an SSH signing key if needed
+ssh-keygen -t ed25519 -f ~/.ssh/git_signing_key -C "your.email@example.com"
 
-# List available secret keys
-gpg --list-secret-keys --keyid-format=long
+# Export the public key
+ssh-keygen -y -f ~/.ssh/git_signing_key > ~/.ssh/git_signing_key.pub
 
-# Configure git to sign tags using your key
-git config user.signingkey <YOUR_KEY_ID>
+# Configure git to use SSH signing
+git config gpg.format ssh
+git config user.signingkey ~/.ssh/git_signing_key.pub
 git config tag.gpgSign true
 ```
+
+If you use a different signing key, update `.github/allowed_signers` with the public key for the release signer identity.
 
 Verify a signed tag:
 
 ```bash
-git tag -v v1.0.4
+git -c gpg.format=ssh -c gpg.ssh.allowedSignersFile=.github/allowed_signers tag -v v1.0.4
 ```
 
 ## Publishing to npm
