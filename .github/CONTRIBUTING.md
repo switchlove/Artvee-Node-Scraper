@@ -2,6 +2,26 @@
 
 Thank you for your interest in contributing! Here are some guidelines to help you get started.
 
+## Developer Certificate of Origin (DCO)
+
+By contributing to this project, you agree to the [Developer Certificate of Origin (DCO)](https://developercertificate.org/). This certifies that you have the legal right to make your contributions.
+
+To indicate your agreement, add a `Signed-off-by` line to all your commit messages:
+
+```bash
+git commit -s -m "Your commit message"
+```
+
+This will automatically add:
+```
+Signed-off-by: Your Name <your.email@example.com>
+```
+
+The DCO requires that you certify:
+1. You created the contribution or have the right to submit it under the project's open source license
+2. You understand and agree that your contribution is public
+3. Your submission complies with any employer agreements or other third-party rights
+
 ## How to Contribute
 
 ### Reporting Bugs
@@ -167,4 +187,7 @@ Feel free to open an issue for questions or discussion!
 
 ## Code of Conduct
 
-Be respectful, constructive, and welcoming to all contributors.
+This project follows the Contributor Covenant Code of Conduct:
+- [CODE_OF_CONDUCT.md](../CODE_OF_CONDUCT.md)
+
+By participating, you agree to be respectful, constructive, and welcoming to all contributors.

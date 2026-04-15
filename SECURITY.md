@@ -33,6 +33,32 @@ If you discover a security vulnerability in this project, please report it by:
 - In scope: vulnerabilities in this repository's source code, workflows, and release artifacts
 - Out of scope: issues in third-party services outside this repository, unless directly caused by this project's code
 
+## Security Requirements
+
+This section documents what users can and cannot expect from this software.
+
+### What Users Can Expect
+
+- Path traversal protections for downloaded filenames and output paths
+- Input validation for user-provided options and URLs
+- Retry logic with bounded behavior for network failures
+- Private vulnerability reporting and coordinated disclosure process
+- Security scanning in development workflows (static analysis and dependency checks)
+
+### What Users Cannot Expect
+
+- Protection against compromise of third-party services (for example, Artvee itself)
+- Guarantees about the integrity or availability of third-party remote content
+- A hosted service with account management or password storage by this project
+- Compatibility or security guarantees on unsupported Node.js versions
+
+### User Responsibilities
+
+- Keep dependencies updated (`npm audit`, `npm update`)
+- Store any authentication data outside source control
+- Use this scraper in accordance with Artvee Terms of Service and local law
+- Run the latest supported release when handling untrusted content
+
 ## Preferred Report Content
 
 - Affected version(s)

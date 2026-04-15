@@ -122,10 +122,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Future Releases
 
+### 12-Month Roadmap (2026-2027)
+
+The project intends to focus on reliability, maintainability, and security over the next year.
+
 ### Planned Features
 - [ ] CLI tool for command-line usage
 - [ ] Database integration options
 - [ ] Advanced filtering (by color, style, etc.)
+
+### Planned Non-Goals (Out of Scope)
+- [ ] Hosting a managed cloud scraping service
+- [ ] Building a graphical desktop or mobile application
+- [ ] Supporting non-Node.js runtime environments
+- [ ] Storing user credentials on project-managed infrastructure
 
 ---
 

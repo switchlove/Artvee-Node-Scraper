@@ -8,7 +8,7 @@
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/t/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper)
 [![GitHub Issues](https://img.shields.io/github/issues/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/issues)
 [![GitHub Pull Requests](https://img.shields.io/github/issues-pr/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/pulls)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&style=flat-square&logo=github&logoColor=%23181717)](https://github.com/theoephraim/node-google-spreadsheet/actions/workflows/ci.yml)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&style=flat-square&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/actions/workflows/ci.yml)
 [![Coverage Status](https://img.shields.io/coverallsCoverage/github/switchlove/Artvee-Node-Scraper?style=flat-square&logo=github&logoColor=%23181717)](https://coveralls.io/github/switchlove/Artvee-Node-Scraper?branch=main)
 
 
@@ -101,6 +101,21 @@ Reduce file sizes by 80%+ with quality/format control. See [Compression Guide](.
 ### Retry & Resume
 Auto-retry with exponential backoff. Resume interrupted downloads. See [Download Guide](../../wiki/Download-Guide).
 
+## Project Policies
+
+- [Contributing Guide](.github/CONTRIBUTING.md)
+- [Developer Certificate of Origin (DCO)](https://developercertificate.org/)
+- [Governance Model](GOVERNANCE.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy and Requirements](SECURITY.md)
+- [Architecture Overview](ARCHITECTURE.md)
+- [Roadmap (Future Releases)](CHANGELOG.md#future-releases)
+
+## Achievements
+
+- OpenSSF Scorecard security hardening completed (see CI workflows and security documentation)
+- OpenSSF Best Practices Badge: link will be added here within 48 hours of public recognition
+
 ## ⚖️ License & Disclaimer
 
 **License:** [MIT License](LICENSE)
@@ -113,4 +128,4 @@ This means you can use, modify, and distribute this code as long as you:
 
 ---
 
-**[📖 Full Documentation](../../wiki)** • **[Examples](examples/)** • **[Issues](../../issues)** • **[Contributing](CONTRIBUTING.md)**
+**[📖 Full Documentation](../../wiki)** • **[Examples](examples/)** • **[Issues](https://github.com/switchlove/Artvee-Node-Scraper/issues)** • **[Contributing](.github/CONTRIBUTING.md)**
