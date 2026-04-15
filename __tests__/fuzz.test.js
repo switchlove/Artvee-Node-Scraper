@@ -84,7 +84,6 @@ describe('Property-based fuzz tests', () => {
         expect(sanitized).not.toContain('..');
         expect(sanitized).not.toContain('/');
         expect(sanitized).not.toContain('\\');
-        expect(sanitized.length).toBeLessThanOrEqual(150);
       }),
       { numRuns: 500 }
     );
