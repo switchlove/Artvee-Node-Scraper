@@ -43,21 +43,45 @@ Follow [Semantic Versioning](https://semver.org/):
 
 ### Bump Version
 
+Important release tags should be cryptographically signed.
+
 ```bash
 # Patch release (1.0.0 -> 1.0.1)
-npm version patch
+npm version patch --sign-git-tag
 
 # Minor release (1.0.0 -> 1.1.0)
-npm version minor
+npm version minor --sign-git-tag
 
 # Major release (1.0.0 -> 2.0.0)
-npm version major
+npm version major --sign-git-tag
 ```
 
 This automatically:
 - Updates package.json and package-lock.json
 - Creates a git commit
-- Creates a git tag
+- Creates a cryptographically signed git tag (when GPG is configured locally)
+
+### Configure Git Tag Signing
+
+Before creating release tags, configure a signing key:
+
+```bash
+# Generate a signing key if needed
+gpg --full-generate-key
+
+# List available secret keys
+gpg --list-secret-keys --keyid-format=long
+
+# Configure git to sign tags using your key
+git config user.signingkey <YOUR_KEY_ID>
+git config tag.gpgSign true
+```
+
+Verify a signed tag:
+
+```bash
+git tag -v v1.0.4
+```
 
 ## Publishing to npm
 
@@ -109,6 +133,72 @@ git push origin main --tags
 
 The GitHub workflow will automatically create a release.
 
+## Signed Release Artifacts
+
+GitHub releases are signed automatically by the release workflow using **Sigstore Cosign keyless signing**.
+
+- The npm package tarball is signed
+- The `SHA256SUMS` file is signed
+- Signatures and certificates are attached to the GitHub release
+- No long-lived private signing key is stored in the repository or on public distribution sites
+
+Sigstore keyless signing uses GitHub Actions OIDC identity plus Sigstore's public trust roots. Users verify the signature against the workflow identity instead of downloading a project-managed private key.
+
+## Verify Release Signatures
+
+### 1. Download release files
+
+From the GitHub release page, download:
+
+- `artvee-node-scraper-<version>.tgz`
+- `artvee-node-scraper-<version>.tgz.sig`
+- `artvee-node-scraper-<version>.tgz.pem`
+- `SHA256SUMS`
+- `SHA256SUMS.sig`
+- `SHA256SUMS.pem`
+
+### 2. Install Cosign
+
+Follow the official installation instructions:
+
+- https://docs.sigstore.dev/cosign/system_config/installation/
+
+Optionally initialize/update Sigstore trust roots:
+
+```bash
+cosign initialize
+```
+
+### 3. Verify the package signature
+
+```bash
+cosign verify-blob \
+	--certificate artvee-node-scraper-<version>.tgz.pem \
+	--signature artvee-node-scraper-<version>.tgz.sig \
+	--certificate-identity-regexp "^https://github.com/switchlove/Artvee-Node-Scraper/.github/workflows/release.yml@refs/tags/v.*$" \
+	--certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+	artvee-node-scraper-<version>.tgz
+```
+
+### 4. Verify the checksum file signature
+
+```bash
+cosign verify-blob \
+	--certificate SHA256SUMS.pem \
+	--signature SHA256SUMS.sig \
+	--certificate-identity-regexp "^https://github.com/switchlove/Artvee-Node-Scraper/.github/workflows/release.yml@refs/tags/v.*$" \
+	--certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+	SHA256SUMS
+```
+
+### 5. Verify the checksum matches the package
+
+```bash
+sha256sum -c SHA256SUMS
+```
+
+Successful verification confirms that the artifact was signed by the repository's release workflow for a version tag.
+
 ## Complete Release Process
 
 ### Step-by-Step
@@ -130,7 +220,7 @@ git add CHANGELOG.md
 git commit -m "docs: update changelog for v1.0.1"
 
 # 5. Bump version (creates commit and tag)
-npm version patch -m "chore: release v%s"
+npm version patch --sign-git-tag -m "chore: release v%s"
 
 # 6. Push changes and tags
 git push origin main --tags

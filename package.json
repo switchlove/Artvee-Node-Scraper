@@ -23,9 +23,9 @@
     "version": "npm run update-changelog && git add CHANGELOG.md",
     "postversion": "git push && git push --tags",
     "update-changelog": "echo 'Remember to update CHANGELOG.md manually'",
-    "release:patch": "npm version patch && npm publish",
-    "release:minor": "npm version minor && npm publish",
-    "release:major": "npm version major && npm publish"
+    "release:patch": "npm version patch --sign-git-tag && npm publish",
+    "release:minor": "npm version minor --sign-git-tag && npm publish",
+    "release:major": "npm version major --sign-git-tag && npm publish"
   },
   "jest": {
     "testEnvironment": "node",

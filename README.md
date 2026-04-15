@@ -111,6 +111,7 @@ Auto-retry with exponential backoff. Resume interrupted downloads. See [Download
 - [Architecture Overview](ARCHITECTURE.md)
 - [Roadmap (Future Releases)](CHANGELOG.md#future-releases)
 - [Maintenance and Upgrade Policy](UPGRADE.md)
+- [Release Guide and Signature Verification](.github/RELEASE.md)
 
 ## Achievements
 
