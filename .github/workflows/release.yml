@@ -48,7 +48,8 @@ jobs:
       id: pack
       run: |
         mkdir -p release-artifacts
-        PKG_FILE=$(npm pack --pack-destination ./release-artifacts)
+        PACK_JSON=$(npm pack --json --pack-destination ./release-artifacts)
+        PKG_FILE=$(node -e 'const data = JSON.parse(process.argv[1]); console.log(data[0].filename);' "$PACK_JSON")
         echo "package_file=$PKG_FILE" >> $GITHUB_OUTPUT
 
     - name: Generate checksums
