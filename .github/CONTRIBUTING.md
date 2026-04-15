@@ -61,10 +61,24 @@ npm install
 
 ## Code Style
 
-- Use consistent indentation (2 spaces)
-- Write clear, descriptive variable names
-- Add comments for complex logic
-- Follow the existing code structure
+The project uses a documented JavaScript coding standard based on:
+
+- **ESLint Recommended** (`eslint:recommended`) for code-quality rules
+- Existing project conventions (2-space indentation, descriptive naming, clear structure)
+
+Run style checks locally:
+
+```bash
+npm run lint
+```
+
+Auto-fix style issues where possible:
+
+```bash
+npm run lint:fix
+```
+
+Contributions must generally comply with these standards.
 
 ## Testing
 
@@ -96,6 +110,16 @@ npm run test-download
 - Ensure tests pass locally before submitting PR
 - Maintain or improve code coverage (currently 100%)
 - Tests run automatically in CI on all PRs
+- Bug fixes must include regression tests when feasible
+- Pull requests for bug fixes must describe the regression test added
+
+### Regression Test Tracking Policy
+
+To ensure at least 50% of bug fixes include regression tests:
+
+- Bug-fix PRs must link the related issue
+- Bug-fix PRs must include a regression test note in the PR template checklist
+- Releases summarize bug fixes and related regression tests in `CHANGELOG.md`
 
 ### Static Analysis
 

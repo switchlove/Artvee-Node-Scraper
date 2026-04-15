@@ -68,6 +68,9 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Enforce coding standards
+      run: npm run lint
+
     - name: Check for syntax errors
       run: node --check scraper.js
 

@@ -428,8 +428,7 @@ class ArtveeScraper {
         headers
       });
 
-      // Check if server supports range requests
-      const acceptsRanges = response.headers['accept-ranges'] === 'bytes';
+      // Detect resumable response via status/content-range.
       const contentRange = response.headers['content-range'];
       const isResuming = resume && existingSize > 0 && (response.status === 206 || contentRange);
 

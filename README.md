@@ -110,6 +110,7 @@ Auto-retry with exponential backoff. Resume interrupted downloads. See [Download
 - [Security Policy and Requirements](SECURITY.md)
 - [Architecture Overview](ARCHITECTURE.md)
 - [Roadmap (Future Releases)](CHANGELOG.md#future-releases)
+- [Maintenance and Upgrade Policy](UPGRADE.md)
 
 ## Achievements
 
