@@ -38,6 +38,10 @@
       "**/__tests__/**/*.js",
       "**/?(*.)+(spec|test).js"
     ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "__tests__/fuzz.test.js"
+    ],
     "coverageThreshold": {
       "global": {
         "branches": 10,
