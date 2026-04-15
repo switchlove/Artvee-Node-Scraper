@@ -1,22 +1,24 @@
 # Security Policy
 
+This file is intentionally placed at the repository root for easy discovery by vulnerability reporters.
+
 ## Reporting a Vulnerability
 
 If you discover a security vulnerability in this project, please report it by:
 
-1. **Do NOT** open a public issue
+1. **Do NOT** open a public issue.
 2. Use GitHub's private vulnerability reporting:
-  - https://github.com/switchlove/Artvee-Node-Scraper/security/advisories/new
+   - https://github.com/switchlove/Artvee-Node-Scraper/security/advisories/new
 3. If private reporting is unavailable, contact the maintainer by email:
-  - tim@timothyhaines.net
-  - mailto:tim@timothyhaines.net
+   - tim@timothyhaines.net
+   - mailto:tim@timothyhaines.net
 4. Reference this repository in your report:
-  - https://github.com/switchlove/Artvee-Node-Scraper
+   - https://github.com/switchlove/Artvee-Node-Scraper
 5. Include:
-  - Description of the vulnerability
-  - Steps to reproduce
-  - Potential impact
-  - Suggested fix (if any)
+   - Description of the vulnerability
+   - Steps to reproduce
+   - Potential impact
+   - Suggested fix (if any)
 
 ## Disclosure Process
 
@@ -36,7 +38,7 @@ If you discover a security vulnerability in this project, please report it by:
 - Affected version(s)
 - Attack prerequisites
 - Proof-of-concept details
-- Severity estimate (for example, CVSS) and business impact
+- Severity estimate (for example, CVSS) and business impact:
   - https://www.first.org/cvss/
 - Any known mitigations
 
@@ -44,44 +46,13 @@ If you discover a security vulnerability in this project, please report it by:
 
 If you act in good faith, avoid privacy violations, data destruction, and service disruption, we will consider your research authorized and will not pursue legal action.
 
+## Supported Versions
+
+| Version | Supported |
+| ------- | --------- |
+| 1.0.x   | Yes       |
+
 ## Additional Security Resources
 
 - OpenSSF Scorecard: https://github.com/ossf/scorecard
 - GitHub Security Advisories: https://docs.github.com/en/code-security/security-advisories
-
-## Best Practices
-
-### Protecting Your Credentials
-
-- **Never commit** your `config.js` file (it's in `.gitignore`)
-- **Never share** your premium account cookies publicly
-- **Store credentials** in environment variables or secure config files
-- **Rotate cookies** periodically
-
-### Safe Usage
-
-- Don't include authentication tokens in code
-- Use environment variables for sensitive data:
-  ```javascript
-  authCookie: process.env.ARTVEE_COOKIE
-  ```
-- Be cautious when sharing code snippets that might contain credentials
-
-## Supported Versions
-
-| Version | Supported          |
-| ------- | ------------------ |
-| 1.0.x   | :white_check_mark: |
-
-## Dependencies
-
-This project uses:
-- `axios` - HTTP client
-- `cheerio` - HTML parser
-- `image-size` - Image metadata
-
-Keep dependencies updated to get security patches:
-```bash
-npm audit
-npm update
-```

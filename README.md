@@ -84,6 +84,7 @@ npm run test-scrape          # Scraping demo
 npm run test-download        # Download demo
 npm run test-compression     # Compression demo
 npm run demo-retry-resume    # Retry/resume demo
+npm run fuzz                 # Property-based fuzz tests
 ```
 
 ## 💡 Key Features
