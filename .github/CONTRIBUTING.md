@@ -101,6 +101,59 @@ Run fuzzing tests locally:
 npm run fuzz
 ```
 
+## Security Best Practices
+
+### Secure Development Knowledge
+
+Project maintainers are knowledgeable about:
+
+- **Common vulnerabilities**: Path traversal, XSS, injection attacks, ReDoS
+- **Secure design patterns**: Input validation, output encoding, least privilege
+- **Mitigation techniques**: All implemented in codebase (see below)
+
+### Security Features
+
+The following security measures are implemented:
+
+1. **Path Traversal Prevention**
+   - `sanitizeFilename()`: Removes `..`, null bytes, and path separators
+   - `safePath()`: Validates resolved paths stay within target directory
+   - Uses `path.basename()` for defense-in-depth
+
+2. **ReDoS Prevention**
+   - `extractArtist()`: Uses String methods instead of complex regex
+   - Avoids backtracking-prone regex patterns
+
+3. **Cryptographically Secure Random Numbers**
+   - Uses Node.js built-in `crypto.randomBytes()` for jitter generation
+   - Never uses `Math.random()` for security-sensitive operations
+
+4. **Input Validation**
+   - Filename sanitization enforces 150-character limit
+   - URL validation via native URL parser
+   - Type checking on all public method parameters
+
+### Cryptographic Practices
+
+This project is a web scraper and **does not implement cryptography**. When cryptographic operations are needed:
+
+- Uses Node.js built-in `crypto` module (FIPS 140-2 validated)
+- Only for non-cryptographic purposes (secure random jitter)
+- No custom cryptographic algorithms or key management
+
+### Vulnerability Management
+
+- All publicly known vulnerabilities tracked in GitHub Security Advisories
+- Medium/high severity vulnerabilities fixed within 60 days
+- Critical vulnerabilities fixed rapidly (target: within 7 days)
+- Security scanning via njsscan and CodeQL runs continuously
+
+### Credential Security
+
+- **No credentials in code**: Project does not store passwords or API keys
+- Authentication (when used) is user-provided via constructor options
+- Secrets must be managed externally (environment variables, secret managers)
+
 ## Respect Rate Limits
 
 When contributing features that make requests to Artvee:
