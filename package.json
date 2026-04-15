@@ -70,7 +70,7 @@
     "nodejs"
   ],
   "author": "switchlove",
-  "license": "CC-BY-SA-4.0",
+  "license": "MIT",
   "engines": {
     "node": ">=24.0.0"
   },

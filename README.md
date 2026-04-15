@@ -103,7 +103,7 @@ Auto-retry with exponential backoff. Resume interrupted downloads. See [Download
 
 ## ⚖️ License & Disclaimer
 
-**License:** [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](LICENSE)
+**License:** [MIT License](LICENSE)
 
 This means you can use, modify, and distribute this code as long as you:
 - ✅ Give appropriate credit

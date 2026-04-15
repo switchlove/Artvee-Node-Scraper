@@ -53,6 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- License changed from CC-BY-SA-4.0 to MIT to use an OSI-approved software license.
+
 ## [1.0.2] - 2026-04-13
 
 ### Changed
