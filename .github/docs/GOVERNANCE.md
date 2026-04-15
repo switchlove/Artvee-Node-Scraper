@@ -124,7 +124,7 @@ Community members may propose governance changes via GitHub Issues.
 
 ## Code of Conduct Enforcement
 
-Violations of the [Code of Conduct](CODE_OF_CONDUCT.md) are handled by the maintainer:
+Violations of the [Code of Conduct](../../CODE_OF_CONDUCT.md) are handled by the maintainer:
 
 1. **Warning:** First offense (unless severe)
 2. **Temporary Ban:** Repeated violations (1-6 months)
@@ -134,10 +134,10 @@ Appeals may be submitted via email to the maintainer.
 
 ## Resources
 
-- [Contributing Guidelines](.github/CONTRIBUTING.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Security Policy](.github/SECURITY.md)
-- [Project Roadmap](CHANGELOG.md#future-releases)
+- [Contributing Guidelines](../CONTRIBUTING.md)
+- [Code of Conduct](../../CODE_OF_CONDUCT.md)
+- [Security Policy](../../SECURITY.md)
+- [Project Roadmap](../../CHANGELOG.md#future-releases)
 
 ---
 

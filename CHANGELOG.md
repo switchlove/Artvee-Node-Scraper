@@ -51,22 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `safePath()` method with path.resolve() validation
 - Improved validation of user-provided artwork titles before filesystem operations
 
-## [Unreleased]
-
-### Added
-- Enforced coding standards with ESLint (`eslint:recommended`) in CI (`npm run lint`)
-- Published explicit coding standards and local lint commands in `.github/CONTRIBUTING.md`
-- Added regression test tracking policy for bug-fix pull requests
-- Added maintenance and upgrade policy in `.github/docs/UPGRADE.md`
-
-### Changed
-- License changed from CC-BY-SA-4.0 to MIT to use an OSI-approved software license.
-
-### Fixed
-- Documented existing regression coverage for recent bug fixes:
-- Path traversal hardening covered by `sanitizeFilename` and `safePath` tests in `__tests__/scraper.test.js`
-- ReDoS mitigation covered by `extractArtist` unit tests and fuzz tests in `__tests__/fuzz.test.js`
-
 ## [1.0.2] - 2026-04-13
 
 ### Changed
@@ -128,6 +112,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - image-size@^2.0.2 - Image metadata
 - cli-progress@^3.12.0 - Progress bars
 - sharp@^0.33.0 - Image compression (optional)
+
+---
+
+## [Unreleased]
+
+### Added
+- Enforced coding standards with ESLint (`eslint:recommended`) in CI (`npm run lint`)
+- Published explicit coding standards and local lint commands in `.github/CONTRIBUTING.md`
+- Added regression test tracking policy for bug-fix pull requests
+- Added maintenance and upgrade policy in `.github/docs/UPGRADE.md`
+
+### Changed
+- License changed from CC-BY-SA-4.0 to MIT to use an OSI-approved software license.
+
+### Fixed
+- Documented existing regression coverage for recent bug fixes:
+- Path traversal hardening covered by `sanitizeFilename` and `safePath` tests in `__tests__/scraper.test.js`
+- ReDoS mitigation covered by `extractArtist` unit tests and fuzz tests in `__tests__/fuzz.test.js`
 
 ---
 

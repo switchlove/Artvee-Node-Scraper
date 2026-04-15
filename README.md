@@ -59,19 +59,19 @@ await scraper.downloadMultipleArtworks(
 
 ## 📚 Documentation
 
-**[📖 Visit the Wiki](../../wiki)** for complete documentation:
+**[📖 Visit the Wiki](https://github.com/switchlove/Artvee-Node-Scraper/wiki)** for complete documentation:
 
 | Guide | Description |
 |-------|-------------|
-| [Installation](../../wiki/Installation) | Setup and dependencies |
-| [Usage Guide](../../wiki/Usage) | Scraping and filtering |
-| [Download Guide](../../wiki/Download-Guide) | Progress bars, retry, resume |
-| [Compression Guide](../../wiki/Compression-Guide) | Image optimization |
-| [API Reference](../../wiki/API-Reference) | Complete API docs |
-| [Examples](../../wiki/Examples) | 14+ code examples |
-| [Premium Account](../../wiki/Premium-Account) | Premium features |
-| [FAQ](../../wiki/FAQ) | Common questions |
-| [Troubleshooting](../../wiki/Troubleshooting) | Debug issues |
+| [Installation](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Installation) | Setup and dependencies |
+| [Usage Guide](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Usage) | Scraping and filtering |
+| [Download Guide](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Download-Guide) | Progress bars, retry, resume |
+| [Compression Guide](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Compression-Guide) | Image optimization |
+| [API Reference](https://github.com/switchlove/Artvee-Node-Scraper/wiki/API-Reference) | Complete API docs |
+| [Examples](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Examples) | 14+ code examples |
+| [Premium Account](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Premium-Account) | Premium features |
+| [FAQ](https://github.com/switchlove/Artvee-Node-Scraper/wiki/FAQ) | Common questions |
+| [Troubleshooting](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Troubleshooting) | Debug issues |
 
 ## 🎯 Quick Examples
 
@@ -94,10 +94,10 @@ npm run fuzz                 # Property-based fuzz tests
 ```
 
 ### Compression
-Reduce file sizes by 80%+ with quality/format control. See [Compression Guide](../../wiki/Compression-Guide).
+Reduce file sizes by 80%+ with quality/format control. See [Compression Guide](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Compression-Guide).
 
 ### Retry & Resume
-Auto-retry with exponential backoff. Resume interrupted downloads. See [Download Guide](../../wiki/Download-Guide).
+Auto-retry with exponential backoff. Resume interrupted downloads. See [Download Guide](https://github.com/switchlove/Artvee-Node-Scraper/wiki/Download-Guide).
 
 ## Project Policies
 
@@ -129,4 +129,4 @@ This means you can use, modify, and distribute this code as long as you:
 
 ---
 
-**[📖 Full Documentation](../../wiki)** • **[Examples](examples/)** • **[Issues](https://github.com/switchlove/Artvee-Node-Scraper/issues)** • **[Contributing](.github/CONTRIBUTING.md)**
+**[📖 Full Documentation](https://github.com/switchlove/Artvee-Node-Scraper/wiki)** • **[Examples](examples/)** • **[Issues](https://github.com/switchlove/Artvee-Node-Scraper/issues)** • **[Contributing](.github/CONTRIBUTING.md)**

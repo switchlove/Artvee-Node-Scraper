@@ -8,7 +8,7 @@ This assurance case applies to the software in this repository, including source
 
 ## Security Requirements Summary
 
-Security requirements are documented in [SECURITY.md](SECURITY.md), including:
+Security requirements are documented in [SECURITY.md](../../SECURITY.md), including:
 
 - Input validation for user-provided options and URLs
 - Path traversal protections for downloaded filenames and output paths
@@ -82,8 +82,8 @@ Countermeasures:
 
 Evidence:
 
-- [scraper.js](scraper.js)
-- [__tests__/scraper.test.js](__tests__/scraper.test.js)
+- [scraper.js](../../scraper.js)
+- [__tests__/scraper.test.js](../../__tests__/scraper.test.js)
 
 ### ReDoS / Parser Abuse
 
@@ -94,8 +94,8 @@ Countermeasures:
 
 Evidence:
 
-- [scraper.js](scraper.js)
-- [__tests__/fuzz.test.js](__tests__/fuzz.test.js)
+- [scraper.js](../../scraper.js)
+- [__tests__/fuzz.test.js](../../__tests__/fuzz.test.js)
 
 ### Credential Exposure
 
@@ -106,8 +106,8 @@ Countermeasures:
 
 Evidence:
 
-- [config.example.js](config.example.js)
-- [SECURITY.md](SECURITY.md)
+- [config.example.js](../../config.example.js)
+- [SECURITY.md](../../SECURITY.md)
 
 ### Release Tampering
 
@@ -118,8 +118,8 @@ Countermeasures:
 
 Evidence:
 
-- [.github/workflows/release.yml](.github/workflows/release.yml)
-- [.github/RELEASE.md](.github/RELEASE.md)
+- [.github/workflows/release.yml](../workflows/release.yml)
+- [.github/RELEASE.md](../RELEASE.md)
 
 ## Residual Risk and Assumptions
 
