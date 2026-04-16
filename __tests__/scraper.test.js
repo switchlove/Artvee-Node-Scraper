@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Artvee Node Scraper Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 // Mock modules before importing scraper
 jest.mock('axios');
 jest.mock('fs');

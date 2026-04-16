@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Artvee Node Scraper Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 const axios = require('axios');
 const cheerio = require('cheerio');
 const fs = require('fs');

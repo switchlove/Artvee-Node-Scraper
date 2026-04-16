@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Artvee Node Scraper Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 // Configuration file for Artvee Scraper
 // Copy this file to config.js and fill in your credentials
 

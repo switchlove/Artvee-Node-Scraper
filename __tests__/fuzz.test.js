@@ -1,3 +1,8 @@
+/*
+ * Copyright (c) 2026 Artvee Node Scraper Contributors
+ * SPDX-License-Identifier: MIT
+ */
+
 const fc = require('fast-check');
 const ArtveeScraper = require('../scraper');
 
