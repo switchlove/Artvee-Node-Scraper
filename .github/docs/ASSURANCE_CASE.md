@@ -2,6 +2,16 @@
 
 This assurance case explains why the project's documented security requirements are met.
 
+## Security Review Record
+
+- Review date: 2026-04-15
+- Review scope: source code, CI workflows, and release artifacts
+- Review basis: documented security requirements in [SECURITY.md](../../SECURITY.md)
+- Security boundaries reviewed: remote network, filesystem, credentials, and release boundaries
+- Reviewer: project maintainer
+
+This review is within the last 5 years and is updated as part of release readiness and policy maintenance.
+
 ## Scope
 
 This assurance case applies to the software in this repository, including source code, CI workflows, and release artifacts.
@@ -65,6 +75,41 @@ The following trust boundaries are explicitly recognized:
 - Filename sanitization plus safe path validation are both applied
 - Security scanning and tests run in CI before release
 - Release artifacts are signed and verification steps are documented
+
+## Hardening Mechanisms Implemented
+
+The project uses implementation-level hardening mechanisms so defects are less likely to become exploitable vulnerabilities.
+
+### Input and Path Hardening
+
+- Path traversal defenses in `sanitizeFilename()` and `safePath()`
+- URL and option input validation in scraping and download flows
+
+Evidence:
+
+- [scraper.js](../../scraper.js)
+- [__tests__/scraper.test.js](../../__tests__/scraper.test.js)
+
+### Parser and Runtime Hardening
+
+- ReDoS-resistant string parsing patterns for artist extraction
+- Cryptographically secure jitter source via Node.js `crypto.randomBytes()`
+
+Evidence:
+
+- [scraper.js](../../scraper.js)
+- [__tests__/fuzz.test.js](../../__tests__/fuzz.test.js)
+
+### Delivery and Pipeline Hardening
+
+- CI static analysis and fuzz testing
+- Signed release artifacts and verification workflow
+
+Evidence:
+
+- [../workflows/ci.yml](../workflows/ci.yml)
+- [../workflows/release.yml](../workflows/release.yml)
+- [../RELEASE.md](../RELEASE.md)
 
 ### Least Privilege and Secret Separation
 
