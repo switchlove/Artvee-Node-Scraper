@@ -40,6 +40,33 @@ Feature requests are welcome! Please:
 - Describe the feature and its use case
 - Explain why it would be useful to others
 
+## Small Tasks for New or Casual Contributors
+
+New and occasional contributors are welcome. Small, low-risk tasks are explicitly tracked and prioritized.
+
+### Where to Find Small Tasks
+
+- `good first issue` label:
+   - https://github.com/switchlove/Artvee-Node-Scraper/labels/good%20first%20issue
+- `help wanted` label:
+   - https://github.com/switchlove/Artvee-Node-Scraper/labels/help%20wanted
+
+### Typical Starter Tasks
+
+- Documentation clarity fixes (README and wiki wording)
+- Add or improve unit tests for existing behavior
+- Add regression tests for confirmed bugs
+- Improve example scripts and comments
+- Triage issues by reproducing and posting minimal repro steps
+
+### Suggested First Contribution Flow
+
+1. Pick an issue labeled `good first issue`.
+2. Comment on the issue to claim intent before opening a PR.
+3. Keep scope focused to one small change.
+4. Include tests or docs updates when applicable.
+5. Open a PR and reference the issue.
+
 ### Submitting Pull Requests
 
 1. **Fork the repository** and create a new branch

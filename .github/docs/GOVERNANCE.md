@@ -97,6 +97,24 @@ To ensure project continuity if the maintainer is unavailable:
 - Recovery codes stored securely offline
 - Trusted colleague has emergency access instructions (sealed envelope)
 
+## Account Security and 2FA Policy
+
+Project maintainer accounts used for repository administration and package publishing must use cryptographic second factors.
+
+### Required 2FA Mechanisms
+
+- WebAuthn/FIDO2 security keys (preferred)
+- Time-based one-time password (TOTP) authenticator apps
+
+### Prohibited as Sole Factor
+
+- SMS-only 2FA is not accepted for project administration or release operations.
+
+### Scope
+
+- GitHub maintainer account used to manage the repository and releases
+- npm account used to publish `artvee-node-scraper`
+
 ### GitHub Repository Access
 - Repository settings allow GitHub staff to transfer ownership if maintainer is unreachable for 90+ days
 - Interested community members may request transfer if:
