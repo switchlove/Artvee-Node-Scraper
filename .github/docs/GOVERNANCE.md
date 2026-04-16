@@ -63,6 +63,28 @@ As the project grows, active contributors may be granted commit access:
 - Documentation updates: Fast-tracked if non-controversial
 - Dependency updates: Merged after automated tests pass
 
+### Code Review Standard
+
+The project follows documented code review requirements in:
+- [Contributing Guidelines](../CONTRIBUTING.md)
+
+Code review is performed in GitHub Pull Requests and checks correctness, tests, security, compatibility, and documentation impact before merge.
+
+### Two-Person Review Policy
+
+For release quality control, at least 50% of proposed modifications must be reviewed by a person other than the author before release.
+
+Policy details:
+- Scope: merged pull requests intended for the release
+- A PR counts as reviewed when it has review activity from a non-author reviewer
+- Release gating: the maintainer verifies the >=50% threshold before cutting a release
+
+Verification references:
+- Merged pull requests:
+   - https://github.com/switchlove/Artvee-Node-Scraper/pulls?q=is%3Apr+is%3Amerged
+- Pull requests with approvals:
+   - https://github.com/switchlove/Artvee-Node-Scraper/pulls?q=is%3Apr+is%3Amerged+review%3Aapproved
+
 ### Major Decisions
 Major changes require discussion and consensus:
 - Breaking API changes

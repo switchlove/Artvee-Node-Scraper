@@ -78,6 +78,38 @@ New and occasional contributors are welcome. Small, low-risk tasks are explicitl
 
 The CI pipeline will automatically run tests, check syntax, and verify coverage on your PR.
 
+## Code Review Requirements
+
+All code changes are reviewed through GitHub Pull Requests.
+
+### How Review Is Conducted
+
+1. Contributor opens a PR with a clear description and linked issue (when applicable).
+2. CI checks must run on the PR.
+3. Reviewer examines the diff, test impact, and release risk.
+4. Reviewer requests changes or approves.
+5. Maintainer merges only after acceptance criteria are met.
+
+### What Review Must Check
+
+- Correctness: change solves the stated problem and does not introduce obvious regressions
+- Tests: new behavior is covered and existing tests continue to pass
+- Security: no unsafe path/file handling, secret exposure, or avoidable input risks
+- Compatibility: public behavior and options remain backward compatible unless explicitly documented
+- Documentation: README/wiki/API docs updated when behavior or options change
+
+### What Is Required To Be Acceptable
+
+- CI is green for required checks
+- Reviewer feedback is resolved (or explicitly documented)
+- Required tests and regression tests are included where applicable
+- At least one maintainer approval is present before merge
+
+### Review Scope Guidance
+
+- Trivial edits (typos/format-only docs) may be merged with lightweight review
+- Non-trivial code modifications should receive full review against the checklist above
+
 ## Development Setup
 
 ```bash
