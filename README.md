@@ -5,7 +5,7 @@
 [![Node LTS](https://img.shields.io/node/v-lts/artvee-node-scraper?logo=nodedotjs&logoColor=%235FA04E)](https://nodejs.org/)
 [![NPM License](https://img.shields.io/npm/l/artvee-node-scraper?logo=creativecommons&logoColor=%23ED592F)](LICENSE)
 
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&logo=github&logoColor=%23181717)](https://github.com/theoephraim/node-google-spreadsheet/actions/workflows/ci.yml)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/switchlove/Artvee-Node-Scraper/ci.yml?branch=main&logo=github&logoColor=%23181717)](https://github.com/switchlove/Artvee-Node-Scraper/blob/main/.github/workflows/ci.yml)
 [![Coverage Status](https://img.shields.io/coverallsCoverage/github/switchlove/Artvee-Node-Scraper?logo=github&logoColor=%23181717)](https://coveralls.io/github/switchlove/Artvee-Node-Scraper?branch=main)
 [![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/switchlove/Artvee-Node-Scraper/badge)](https://scorecard.dev/viewer/?uri=github.com/switchlove/Artvee-Node-Scraper)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12544/badge)](https://www.bestpractices.dev/projects/12544)
